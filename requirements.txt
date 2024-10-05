@@ -1,0 +1,50 @@
+# Hugging Face Transformers for distil-bert model
+transformers>=4.0.0
+datasets>=2.0.0  # For loading and preprocessing tweet data
+
+# Tokenization and NLP processing
+sentencepiece>=0.1.0
+nltk>=3.5  # For additional text processing like slang handling
+
+# PyTorch for model training
+torch>=2.0.0
+torchvision>=0.15.0  # Optional, in case you handle any tweet images
+
+# Graphviz for visualizing graphs and workflows
+graphviz>=0.16.0
+
+# Streamlit for real-time dashboard and visualization
+streamlit>=1.0.0
+
+# FastAPI for batch inference serving
+fastapi>=0.70.0
+uvicorn>=0.16.0  # To serve the FastAPI app
+
+# Plotly Dash for interactive visualizations
+dash>=2.0.0
+plotly>=5.0.0  # Plotly core for graphs
+
+# Additional tools for data handling
+pandas>=1.3.0  # For handling structured data
+numpy>=1.21.0  # For numerical operations
+scikit-learn>=0.24.0  # For evaluation metrics (e.g., accuracy, F1)
+
+# Web scraping and tweet collection (if necessary)
+tweepy>=4.0.0  # For collecting tweets from Twitter API
+
+# Emojis and image processing (for emoji analysis in tweets)
+emoji>=2.0.0
+Pillow>=8.0.0  # For image-related processing
+
+# Sarcasm detection models (optional, if you use pretrained models)
+deepmoji>=0.1.0  # A library for analyzing emojis and sarcasm
+
+# Visualization libraries
+matplotlib>=3.4.0  # For standard visualizations
+seaborn>=0.11.0  # Optional, for advanced visualizations
+
+# To manage .env files (optional for API keys and configurations)
+python-dotenv>=0.18.0
+
+# For testing purposes
+pytest>=6.2.0  # For unit testing of code
