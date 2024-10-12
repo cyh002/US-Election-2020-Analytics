@@ -36,9 +36,6 @@ tweepy>=4.0.0  # For collecting tweets from Twitter API
 emoji>=2.0.0
 Pillow>=8.0.0  # For image-related processing
 
-# Sarcasm detection models (optional, if you use pretrained models)
-deepmoji>=0.1.0  # A library for analyzing emojis and sarcasm
-
 # Visualization libraries
 matplotlib>=3.4.0  # For standard visualizations
 seaborn>=0.11.0  # Optional, for advanced visualizations
@@ -51,3 +48,10 @@ pytest>=6.2.0  # For unit testing of code
 
 # OpenAI (Deepseek) 
 openai
+
+langdetect>=1.0.0
+PyYAML>=5.4.1
+
+prompt-toolkit
+ipykernel
+
