@@ -9,7 +9,6 @@ from langdetect import detect, DetectorFactory, LangDetectException
 from nltk.tokenize import TweetTokenizer
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-from sklearn.feature_extraction.text import CountVectorizer
 import yaml
 
 # Load config file
@@ -91,7 +90,7 @@ def filter_country(data: pd.DataFrame, country: list) -> pd.DataFrame:
         pd.DataFrame: Filtered DataFrame.
     """
     assert isinstance(country, list) and all(isinstance(c, str) for c in country), "Provide a list of strings as the country filter."
-    data = data[data['country'].isin(country) & data['state'].notna()]
+    data = data[data['country'].isin(country) & data['state'].notna()].copy()
     return data
 
 def filter_state(data: pd.DataFrame, state_names: list) -> pd.DataFrame:
@@ -106,7 +105,7 @@ def filter_state(data: pd.DataFrame, state_names: list) -> pd.DataFrame:
         pd.DataFrame: Filtered DataFrame.
     """
     assert isinstance(state_names, list) and all(isinstance(c, str) for c in state_names), "Provide a list of strings as the state filter."
-    data = data[data['state'].isin(state_names)]
+    data = data[data['state'].isin(state_names)].copy()
     return data
 
 # Tweet cleaning and preprocessing functions
@@ -193,27 +192,30 @@ def remove_stopwords(tweet: str) -> list:
                  and not token.startswith('@')]
     return tokenized
 
-# Create Document Term Matrix (DTM)
-def create_dtm(data: pd.DataFrame, text_column: str, max_features=1000, max_df=0.5) -> (pd.DataFrame, CountVectorizer):
+def remove_dups_retweets(data, col_name: str, keep_type):
     """
-    Create a Document-Term Matrix (DTM) using the given text column from a DataFrame.
+    Remove duplicate tweets and retwets.
 
     Args:
-        data (pd.DataFrame): DataFrame containing the text data.
-        text_column (str): Column name containing the preprocessed text.
-        max_features (int): Maximum number of features (terms) to include in the DTM.
-        max_df (float): Maximum document frequency to consider a term relevant.
+        tweet (str): Tweet text to process.
 
     Returns:
-        pd.DataFrame: Document-Term Matrix as a DataFrame.
-        CountVectorizer: Fitted CountVectorizer object.
+        list: List of tweets that are non_duplicates. 
     """
-    vectorizer = CountVectorizer(token_pattern=r'\b[a-zA-Z_]{3,}[a-zA-Z]*\b', max_features=max_features, max_df=max_df)
-    dtm_bow = vectorizer.fit_transform(data[text_column])
-    dtm_bow_df = pd.DataFrame(dtm_bow.toarray(), columns=vectorizer.get_feature_names_out())
-    return dtm_bow_df, vectorizer
+    assert col_name in data.columns, f"Error: {col_name} is not a valid column. Available columns are: {list(data.columns)}"
+    assert isinstance(col_name, str), "Error: col_name must be a string"
+    assert keep_type in ['first', 'last', False], "Error: keep_type must be 'first', 'last', or False"
 
-def run_preprocessing_pipeline(config_path: str, trump_path: str = None, biden_path: str = None, output_path: str = None) -> (pd.DataFrame, CountVectorizer, pd.DataFrame):
+    #Remove all the retweets
+    data = data[~data[col_name].str.startswith('RT')]
+
+    #Drop all the duplicates
+    data = data.drop_duplicates(subset=col_name, keep=keep_type)
+    
+    return data
+
+
+def run_preprocessing_pipeline(config_path: str, trump_path: str = None, biden_path: str = None, output_path: str = None, output_path_no_dups: str = None) -> (pd.DataFrame, pd.DataFrame):
     """
     Main function to run the preprocessing pipeline.
 
@@ -224,6 +226,7 @@ def run_preprocessing_pipeline(config_path: str, trump_path: str = None, biden_p
         trump_path (str): Path to the Trump data CSV file.
         biden_path (str): Path to the Biden data CSV file.
         output_path (str): Path to save the preprocessed data CSV file.
+        output_path_no_dup(str): path to save the preprocessed data without duplicates in CSV file.
         
     Returns:
         pd.DataFrame: Document-Term Matrix (DTM) of the preprocessed tweet data.
@@ -241,6 +244,9 @@ def run_preprocessing_pipeline(config_path: str, trump_path: str = None, biden_p
     
     if output_path is None:
         output_path = config['data']['output_path']
+    
+    if output_path_no_dups is None:
+        output_path_no_dups = config['data']['output_path_no_dups']
 
     # Load Trump and Biden data
     print("Loading data...")
@@ -264,27 +270,37 @@ def run_preprocessing_pipeline(config_path: str, trump_path: str = None, biden_p
     # Preprocess tweets
     print("Preprocessing tweets...")
     us_state.loc[:, 'clean_tweet'] = us_state['tweet'].apply(preprocess_tweet)
+    print(us_state.columns)
     
     # Detect English tweets
     print("Detecting English tweets...")
     english_tweets = us_state.loc[us_state['clean_tweet'].apply(detect_english_tweets)]
 
-    # Tokenize and remove stopwords
+    # # Tokenize and remove stopwords
     print("Tokenizing and removing stopwords...")
     english_tweets.loc[:, 'no_stopwords'] = english_tweets['clean_tweet'].apply(remove_stopwords)
 
-    # Create Document Term Matrix
-    print("Creating Document-Term Matrix (DTM)...")
-    dtm, vectorizer = create_dtm(english_tweets, 'no_stopwords')
+    #Remove the duplicates
+    print('Removing Duplcates and Retweets...')
+    print(english_tweets.columns)
+    #Keep all the first tweets
+    tweets_with_dup = remove_dups_retweets(english_tweets, 'tweet', keep_type='first')
+    #Do not keep all the duplicate tweets
+    tweets_no_dup = remove_dups_retweets(english_tweets, 'tweet', keep_type=False)
 
-    # Save preprocessed data (Optional)
-    print("Saving preprocessed data...")
-    english_tweets.to_csv(output_path, index=False)
-    print(f"Preprocessed data saved to {output_path}")
+     # Save both datasets (Optional)
+    print("Saving preprocessed data with duplicates...")
+    tweets_with_dup.to_csv(output_path, index=False)
+    print(f"Preprocessed data with duplicates saved to {output_path}")
+
+    print("Saving preprocessed data without duplicates...")
+    tweets_no_dup.to_csv(output_path_no_dups, index=False)
+    print(f"Preprocessed data without duplicates saved to {output_path_no_dups}")
     
     print("Preprocessing pipeline completed.")
-    return dtm, vectorizer, english_tweets
+    
+    return tweets_with_dup, tweets_no_dup
 
 if __name__ == '__main__':
     config_path = 'conf/config.yaml'
-    dtm, vectorizer, english_tweets = run_preprocessing_pipeline(config_path)
+    tweets_with_dup, tweets_no_dup = run_preprocessing_pipeline(config_path)
