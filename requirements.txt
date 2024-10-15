@@ -55,3 +55,7 @@ PyYAML>=5.4.1
 prompt-toolkit
 ipykernel
 
+#LDA Model
+tmtoolkit >= 0.12.0
+gensim >= 4.3.3
+scipy >=1.13.1

@@ -60,3 +60,13 @@ filter:
     - 'Wisconsin'
     - 'Wyoming'
     - 'District of Columbia'
+
+vectorizer:
+  count:
+    type: "count"
+    max_features: 1000 #Maxmimum features
+    max_df: 0.5 
+  tfidf:
+    type: "tfidf" 
+    max_features: 1000 #Maximum features
+    max_df: 0.5

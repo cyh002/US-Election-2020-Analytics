@@ -6,3 +6,6 @@ data/*
 
 #Ignore virtual environment file
 project6242/
+
+#Ignore all the proposal file
+proposal/
