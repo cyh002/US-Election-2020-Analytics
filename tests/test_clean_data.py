@@ -24,6 +24,14 @@ def sample_dataframe():
         print("Dataset path: {dataset_path} NOT FOUND.")
     raise FileNotFoundError(f"Dataset path: {dataset_path} NOT FOUND.")
 
+def test_hashtag_values(sample_dataframe):
+    # Define allowed values
+    allowed_values = {'biden', 'trump', 'both'}
+    
+    # Check if all values in the 'hashtag' column are in the allowed set
+    assert all(sample_dataframe['hashtag'].isin(allowed_values)), (
+        f"Invalid values found in 'hashtag' column. Allowed values: {allowed_values}"
+    )
 def test_data_types(sample_dataframe):
     # Helper function to check column data type
     def check_dtype(df, column, expected_dtype):
