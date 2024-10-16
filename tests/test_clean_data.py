@@ -1,42 +1,28 @@
+# to run: 
+# python -m pytest -s
+
 import pytest
 import pandas as pd
 import re
 from langdetect import detect, LangDetectException
 import emoji
+import yaml
 from src.preprocessing import tweet_normalize
+import os
+
+# Load configuration from config file
+with open('conf/config.yaml', 'r') as file:
+    config = yaml.safe_load(file)
 
 # Sample DataFrame to be used in the tests
 @pytest.fixture
 def sample_dataframe():
-    data = {
-        'created_date': ['2020-10-15', '2020-10-15'],  # separate out created_at
-        'created_time': ['00:00:02', '00:00:08'], # separate out created_at
-        'tweet_id': [132.0, 133.0],
-        'tweet': ['#Trump: As a student...', 'You get a tie!'],
-        'likes': ['2', '4'],
-        'retweet_count': [10.0, 20.0],
-        'source': ['Twitter Web App', 'Twitter for iPhone'],
-        'user_id': ['8436472', '47413798'],
-        'user_name': ['snarke', 'Rana Abtar'],
-        'user_screen_name': ['snarke', 'Ranaabtar'],
-        'user_description': ['Freelance writer...', 'Washington Correspondent...'],
-        'days_from_join_date': [7, 30], # user_join_date - created_date 
-        'user_join_date': ['2007-08-26 05:56:11', '2009-06-15 19:05:35'],
-        'user_followers_count': [200, 300],
-        'user_location': ['Portland', 'Washington DC'],
-        'lat': [-122.6741949, -77.0365581],
-        'long': ['-122.6741949', '-77.0365581'],
-        'city': ['Portland', 'Washington'],
-        'country': ['United States of America', 'United States of America'], 
-        'continent': ['North America', 'North America'],
-        'state': ['Oregon', 'District of Columbia'],
-        'state_code': ['OR', 'DC'],
-        'days_from_collection' : [7, 10], # collected_at - created_date
-        'hashtag': ['trump', 'biden'],
-        'clean_tweet': ['#Trump: As a student...', 'You get a tie!'],
-        'no_stopwords': [['#trump', 'student', 'used'], ['#trump', 'rally', '#iowa']]
-    }
-    return pd.DataFrame(data)
+    dataset_path = 'data/cleaned/dtm.csv'
+    if os.path.exists(dataset_path):
+        return pd.read_csv(dataset_path)
+    else:
+        print("Dataset path: {dataset_path} NOT FOUND.")
+    raise FileNotFoundError(f"Dataset path: {dataset_path} NOT FOUND.")
 
 def test_data_types(sample_dataframe):
     # Helper function to check column data type
@@ -49,23 +35,22 @@ def test_data_types(sample_dataframe):
     # Expected data types for all columns
     expected_dtypes = {
         'created_date': 'object',
-        'created_time': 'object',
-        'tweet_id': 'float',
+        'created_time': 'object',  # Stored as time object after conversion
+        'tweet_id': 'float64',
         'tweet': 'object',
-        'likes': 'object',
-        'retweet_count': 'float',
+        'likes': 'int64',
+        'retweet_count': 'float64',
         'source': 'object',
-        'user_id': 'object',
+        'user_id': 'int64',
         'user_name': 'object',
         'user_screen_name': 'object',
         'user_description': 'object',
         'days_from_join_date': 'int64',
-        'user_join_date': 'object',
+        'user_join_date': 'object',  # Could be converted to datetime later if needed
         'user_followers_count': 'int64',
         'user_location': 'object',
-        'lat': 'float',
-        'long': 'object',
-        'city': 'object',
+        'lat': 'float64',
+        'long': 'float64',  # Converted to numeric
         'country': 'object',
         'continent': 'object',
         'state': 'object',
@@ -80,11 +65,14 @@ def test_data_types(sample_dataframe):
     for column, expected_dtype in expected_dtypes.items():
         check_dtype(sample_dataframe, column, expected_dtype)
 
-    # Ensure 'country' and 'continent' columns have only expected values
+    # Ensure 'country' and 'state' columns have only expected values from config
+    valid_countries = config['filter']['country']
+    valid_states = config['filter']['state_names']
+
     if 'country' in sample_dataframe.columns:
-        assert (sample_dataframe['country'] == 'United States of America').all(), "Column 'country' contains unexpected values"
-    if 'continent' in sample_dataframe.columns:
-        assert (sample_dataframe['continent'] == 'North America').all(), "Column 'continent' contains unexpected values"
+        assert sample_dataframe['country'].isin(valid_countries).all(), "Column 'country' contains unexpected values"
+    if 'state' in sample_dataframe.columns:
+        assert sample_dataframe['state'].isin(valid_states).all(), "Column 'state' contains unexpected values"
 
 def test_clean_tweet_english_and_normalized(sample_dataframe, sample_count=2):
     # Helper function to check if a tweet contains no emojis
@@ -98,9 +86,13 @@ def test_clean_tweet_english_and_normalized(sample_dataframe, sample_count=2):
     if 'clean_tweet' in sample_dataframe.columns:
         sample_tweets = sample_dataframe['clean_tweet'].sample(sample_count, random_state=42)
         for tweet in sample_tweets:
-            # Test if tweet contains no emojis
-            assert contains_no_emojis(tweet), f"Tweet '{tweet}' contains emojis"
-            # Test if tweet normalization works as intended
-            normalized_tweet = tweet_normalize(tweet)
-            assert '@user' in normalized_tweet or 'http' not in normalized_tweet, f"Tweet '{tweet}' did not normalize correctly"
-            assert '  ' not in normalized_tweet, f"Tweet '{tweet}' contains extra whitespace after normalization"
+            try:
+                # Test if tweet contains no emojis
+                assert contains_no_emojis(tweet), f"Tweet '{tweet}' contains emojis"
+                # Test if tweet normalization works as intended
+                normalized_tweet = tweet_normalize(tweet)
+                assert '@user' in normalized_tweet or 'http' not in normalized_tweet, f"Tweet '{tweet}' did not normalize correctly"
+                assert '  ' not in normalized_tweet, f"Tweet '{tweet}' contains extra whitespace after normalization"
+            except AssertionError as e:
+                print(f"Error for tweet: {tweet}")
+                raise e
