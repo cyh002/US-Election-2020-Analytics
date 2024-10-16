@@ -59,3 +59,4 @@ ipykernel
 tmtoolkit >= 0.12.0
 gensim >= 4.3.3
 scipy >=1.13.1
+pyldavis >= 3.4.1

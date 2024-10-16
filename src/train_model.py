@@ -8,6 +8,10 @@ from itertools import product
 import matplotlib.pyplot as plt
 import yaml
 from preprocessing import load_config
+import pyLDAvis
+import pyLDAvis.gensim
+import pyLDAvis.lda_model
+from scipy.sparse import csr_matrix
 
 def random_sample(dtm: pd.DataFrame, random_seed: int, sample_size:int) -> pd.DataFrame:
     '''
@@ -19,7 +23,7 @@ def random_sample(dtm: pd.DataFrame, random_seed: int, sample_size:int) -> pd.Da
         sample_size (int): The number of rows (documents) to sample from the DTM. This must be less than the total number of rows in the DTM.
 
     Returns:
-        sample_dtm (pd.DataFrame): A pandas DataFrame containing the randomly sampled subset of rows from the original DTM.
+        sample_dtm (pd.DataFrame): A sparse matrix containing the randomly sampled subset of rows from the original DTM.
     '''
     #Ensure that the sample size is within the dtm shape
     assert sample_size < dtm.shape[0], "Sample size exceeds the number of rows in the full DTM."
@@ -27,114 +31,127 @@ def random_sample(dtm: pd.DataFrame, random_seed: int, sample_size:int) -> pd.Da
     np.random.seed(random_seed)
     # Sample rows directly from the sparse matrix without converting the entire matrix to dense format
     sample_indices = np.random.choice(dtm.shape[0], sample_size, replace=False)
-    # Convert only the sampled rows to a dense DataFrame
+    #Create the sample dtm
     sample_dtm = pd.DataFrame(dtm.iloc[sample_indices])
     return sample_dtm
 
-def lda_model(sample_dtm, vectorizer, topics, topic_word_prior, doc_topic_prior, random_state = 123):
+def lda_model(sample_dtm:pd.DataFrame, topics:int, topic_word_prior:float, doc_topic_prior:float, random_state:int = 123):
     '''
-    Create the LDA model and train it
-
+    Create the LDA model and train it.
+    
     Args: 
-        sample_dtm (pd.DataFrame): the sample of the original dtm for training
-        topics (int): The number of topics to find
-        topic_word_prior (float): Prior of topic word distribution beta.
-        doc_topic_prior (float): Prior of document topic distribution theta.
+        sample_dtm (csr_matrix): The sample of the original document-term matrix (DTM) for training, in sparse format (CSR matrix).
+        topics (int): The number of topics to find.
+        topic_word_prior (float): Prior for topic-word distribution (beta).
+        doc_topic_prior (float): Prior for document-topic distribution (alpha).
+        random_state (int): Random seed for reproducibility (default is 123).
 
     Returns:
-        lda_component(np.array): shape:(number of topics, value of each feature)
-
+        lda (LatentDirichletAllocation): A trained LDA model from sklearn that contains the topic-word distributions and other attributes.
     '''
-       # Fit the LDA model
+    # Fit the LDA model
     lda = LDA(n_components=topics,
-                topic_word_prior=topic_word_prior,
-                doc_topic_prior=doc_topic_prior,
-                n_jobs=-1,
-                random_state=random_state)
-    # Train the model
+              topic_word_prior=topic_word_prior,
+              doc_topic_prior=doc_topic_prior,
+              n_jobs=-1,
+              random_state=random_state)
+    
+    # Train the model on the CSR matrix
     lda.fit(sample_dtm)
+    
+    return lda
 
-    #evaluate the training
-    lda_component = lda.components_
-
-    #get the  vocab out
-    vocab = vectorizer.get_feature_names_out()
-    return lda_component, vocab
-
-def mean_umass(top_number_words, sample_dtm, lda_component, vocab):
+def mean_umass(top_number_words: int, sample_dtm: pd.DataFrame, lda_component: np.ndarray, vocab: np.ndarray) -> float:
     '''
-    Evaluation metric to find the best parameters
-
+    Compute the UMass coherence score for the given topic-word distributions using the provided document-term matrix (DTM).
+    This metric helps evaluate how coherent the topics are by calculating how often the top words for each topic co-occur in the documents.
+    
     Args:
-        top_number_words (int): Number of words per topic to evaluate 
-        sample_dtm (pd.DataFrame): Sample of the document term matrix
-        vocab (object): Words shortlisted by the vectorizer. 
-
+        top_number_words (int): The number of top words per topic to consider when computing coherence.
+        sample_dtm (csr_matrix or np.ndarray): The document-term matrix, where rows represent documents and columns represent terms.
+            If passed as a sparse matrix (csr_matrix), it will be converted to a dense format (numpy array).
+        lda_component (np.ndarray): The topic-word distribution matrix from the LDA model. 
+            Shape is (n_topics, n_words), where each row represents a topic, and each column represents a word's importance in that topic.
+        vocab (np.ndarray): The vocabulary array representing the words used in the vectorizer. Each entry corresponds to a word from the DTM.
+    
     Returns:
-        mean_umass (float): the mean umass between all the words. A value closer to 0 indicate perfect coherence. 
+        mean_umass (float): The mean UMass coherence score across all topics. A score closer to 0 indicates better coherence (i.e., the top words in each topic co-occur frequently in the documents).
     '''
+    # Convert the sparse matrix to a dense format if necessary
+    if isinstance(sample_dtm, csr_matrix):
+        sample_dtm = sample_dtm.toarray()  # Convert to dense matrix (numpy array)
+    
+    # Calculate UMass coherence
     umass = metric_coherence_gensim(measure="u_mass", 
                                     top_n=top_number_words,
                                     topic_word_distrib=lda_component,
                                     dtm=sample_dtm,
                                     vocab=vocab)
-    #Find the mean of the coherence of the top 5 words
+    # Find the mean of the coherence of the top words
     mean_umass = np.mean(umass)
     return mean_umass
 
-def train_and_evaluate(model, params, train_sample, vectorizer, top_words):
+def train_and_evaluate(model, params: dict, train_sample, vectorizer, top_words: int, random_state:int = 123) -> pd.DataFrame:
     '''
-    For training and evaluating the LDA model
+    Train and evaluate the LDA model with different hyperparameter combinations and calculate the UMass coherence score for each.
 
     Args: 
-        model: the type of model to run
-        params: the parameters to train on. Change on the train_model.yaml
-        train_sample (pd.DataFrame): training on a small sample of the original dataframe
-        vectorizer (object): Countervectorizer or TfidfVectorizer 
-        top_words (int): the number of words to evaluate for the umass
+        model (function): A function to create and train the LDA model. This function should accept the `train_sample` and hyperparameters from `params`.
+        params (dict): A dictionary containing the hyperparameters to test. Keys are hyperparameter names (e.g., 'topics', 'topic_word_prior'),
+                       and values are lists of possible values for those hyperparameters. These will be combined and evaluated.
+        train_sample (csr_matrix or pd.DataFrame): A document-term matrix (DTM) sample used to train the LDA model. It can be either in sparse (csr_matrix) or dense (DataFrame) format.
+        vectorizer (CountVectorizer or TfidfVectorizer): A vectorizer object that has been fit to the dataset and used to generate the document-term matrix.
+        top_words (int): The number of top words to use when calculating the UMass coherence score for each topic.
+        random_state (int): Random seed for reproducibility (default is 123).
 
-    Return:
-        record (pd.DataFrame): a record of the paramters trained on and the mean_umass score
+    Returns:
+        pd.DataFrame: A DataFrame containing the parameter combinations and their corresponding UMass coherence scores. 
+                      Each row represents a different parameter combination, and the columns store the parameter values and their mean UMass score.
     '''
-   # Get all parameter names and values from the param_grid
+    # Extract the vocabulary from the vectorizer
+    vocab = vectorizer.get_feature_names_out()
+
+    # Get the hyperparameter names and values from the params dictionary
     param_names = params.keys()
     param_values = params.values()
 
-    # Create a list of all combinations of parameters using itertools.product
+    # Generate all possible combinations of the hyperparameter values
     param_combinations = list(product(*param_values))
 
+    # List to store the results
     records = []
 
     for param_combination in param_combinations:
-        # Create a dictionary of current parameter values
+        # Create a dictionary of the current hyperparameter combination
         current_params = dict(zip(param_names, param_combination))
         
-        # Print the current parameters being used
-        print(f"Running model with parameters: {current_params}")
-        
-        # Initialize the model with the current parameters
-        lda_component, vocab = model(train_sample, vectorizer, **current_params)
+        # Initialize and train the model using the current parameters
+        lda = model(train_sample, **current_params, random_state=random_state)
 
-        #Evaluate
+        # Get the topic-word distribution matrix (lda.components_)
+        lda_component = lda.components_
+
+        # Calculate the UMass coherence score for the current model
         score = mean_umass(top_words, train_sample, lda_component, vocab)
 
-        #  Store the results
+        # Store the parameter combination and its corresponding score
         record = {
             **current_params,
             "mean_umass": score
         }
         records.append(record)
 
+    # Convert the results to a DataFrame and return
     df = pd.DataFrame(records)
 
     return df
 
-def get_best_score(df):
+def get_best_score(df: pd.DataFrame):
     '''
     Function to find the best mean umass score and get its coresponding parameters
 
     Args:
-        df(pd.DataFrame): the dataframe of results from the trainin
+        df (pd.DataFrame): the dataframe of results from the training
 
     Return: 
         params(dict):{params:float} A dcitionary consist of the name and the value of the parameter
@@ -147,70 +164,106 @@ def get_best_score(df):
     score = closest_row['mean_umass']
     return params, score
 
-def view_best_score(df):
+def view_best_score(df:pd.DataFrame, x_label:str ='Number of Topics', y_label:str ='Mean UMass Score', title:str ='UMass Coherence Scores'):
     '''
-    Function to create a graph of the umean score against topics to find the best number of topics
+    Function to create a graph of the UMass score against topics to find the best number of topics.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing the results of topic modeling experiments. Must include columns 
+                           'topic_word_prior', 'doc_topic_prior', 'topics', and 'mean_umass'.
+        x_label (str): Label for the x-axis (default is 'Number of Topics').
+        y_label (str): Label for the y-axis (default is 'Mean UMass Score').
+        title (str): Title for the plot (default is 'UMass Coherence Scores').
+
+    Returns:
+        None. Displays a plot.
     '''
     plt.figure(figsize=(10, 6))
+    
+    # Loop through unique combinations of topic_word_prior and doc_topic_prior
     for twp in df['topic_word_prior'].unique():
         for dtp in df['doc_topic_prior'].unique():
             subset = df[(df['topic_word_prior'] == twp) & (df['doc_topic_prior'] == dtp)]
             plt.plot(subset['topics'], subset['mean_umass'], label=f"topic_word_prior={twp}, doc_topic_prior={dtp}")
 
     # Add labels and title
-    plt.xlabel('Number of Topics')
-    plt.ylabel('Mean UMass Score')
-    plt.title('UMass Coherence Scores for Different Topic and Prior Combinations')
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.title(title)
+    
+    # Add legend and grid
     plt.legend()
     plt.grid(True)
 
     # Show the plot
     plt.show()
 
-def get_top_words(params, lda_component, best_vocab, topn):
+def training_pipeline(config_path: str, dtm=None, col_name: str = 'no_stopwords', vectorizer=None, random_seed: int = 0, sample_size: int = 5000, topn: int = 10, random_state: int = 123):
     '''
-    Function to print out the best words for each topic
+    Training pipeline to find the best number of topics, extract top words, and visualize them using pyLDAvis.
+
+    Args:
+        config_path (str): Path to the configuration file (YAML).
+        dtm (csr_matrix or pd.DataFrame): The document-term matrix. Can be in sparse or dense format.
+        col_name (str): The column name containing the cleaned text data (default is 'no_stopwords').
+        vectorizer (CountVectorizer or TfidfVectorizer): The vectorizer used to transform the text data.
+        random_seed (int): Random seed for reproducibility (default is 0).
+        sample_size (int): Number of documents to sample for the small training set (default is 5000).
+        topn (int): Number of top words to extract per topic (default is 10).
+        random_state (int): Random seed for reproducibility (default is 123).
+
+    Returns:
+        tuple: 
+            - results (dict): Top words for each topic based on the best model.
+            - lda_display (pyLDAvis object): The pyLDAvis visualization object for the topics.
     '''
-    # Top words for the topic
-    for top in range(params['topics']):
-        top_words = lda_component[top,:].argsort()[-topn:][::-1].tolist()
-        words = best_vocab[top_words]
-        print(f"Topic {top} words: {'|'.join(words)}")
+    # Load configuration
+    print("Loading config...")
+    config = load_config(config_path)
 
-    return
-
-def training_pipline(dtm, vectorizer, random_seed, sample_size, topn, params):
-    # Reuse the load_config function for the train_model
-    config = load_config('conf/train_model.yaml')
-
-    # Access the `lda_params` from the config
+    # Load and adjust LDA parameters
+    print("Loading parameters from config...")
     lda_params = config['lda_params']
-
-    # Adjust lda_params: create the 'topics' range using start, end, step
     lda_params['topics'] = list(range(lda_params['topics']['start'],
-                                    lda_params['topics']['end'] + 1,
-                                    lda_params['topics']['step']))
+                                      lda_params['topics']['end'] + 1,
+                                      lda_params['topics']['step']))
 
-    #Get a sample of the dtm
-    sample_dtm =  random_sample(dtm, random_seed, sample_size)
+    # Generate a small sample of the DTM for hyperparameter tuning
+    print("Generating a small training sample...")
+    sample_dtm = random_sample(dtm, random_seed, sample_size)
 
-    #Train and evaluate on a small dataset
-    records = train_and_evaluate(lda_model, lda_params, sample_dtm, vectorizer, top_words=10)
+    # Train and evaluate the model on the sample data
+    print("Training and evaluating on the small sample size...")
+    records = train_and_evaluate(lda_model, lda_params, sample_dtm, vectorizer, top_words=topn, random_state=random_state)
 
-    #Plot the graph of the results
+    # Plot the results of training
+    print("Plotting results...")
     view_best_score(records)
 
-    # Get the best params and score from the records
+    # Get the best parameters and their corresponding score
+    print("Extracting the best parameters and score...")
     best_params, best_score = get_best_score(records)
 
-    #Retrain the model on the whole dataset with the best params
-    best_params['topics'] = int(best_params['topics'])
-    best_lda_component, vocab = lda_model(dtm, vectorizer,**best_params)
+    # Retrain the model on the entire dataset with the best parameters
+    print("Retraining with the best parameters on the full dataset...")
+    best_params['topics'] = int(best_params['topics'])  # Ensure 'topics' is an integer
+    best_model = lda_model(dtm, **best_params, random_state=random_state)  # Removed 'vectorizer' as it's not used in lda_model
+    vocab = vectorizer.get_feature_names_out()
 
-    #Print out the top words for each topic
-    results = get_top_words(best_params, best_lda_component, vocab, topn)
+    # Check if the document-term matrix (dtm) is a CSR matrix, if not convert it
+    if not isinstance(dtm, csr_matrix):
+        print("Converting dtm to csr_matrix...")
+        dtm = csr_matrix(dtm)
 
-    return results, vocab, 
+    # Create pyLDAvis visualization
+    print("Generating the pyLDAvis display...")
+    lda_display = pyLDAvis.lda_model.prepare(best_model, dtm, vectorizer)
 
+    print("Training process is completed!")
 
+    return lda_display
+
+if __name__ == '__main__':
+    config_path = 'conf/train_model.yaml'
+    results = training_pipeline(config_path)
 
