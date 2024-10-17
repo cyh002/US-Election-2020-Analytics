@@ -43,31 +43,27 @@ def create_dtm(data: pd.DataFrame, text_column: str, vectorizer) -> (pd.DataFram
     dtm_bow_df = pd.DataFrame(dtm_bow.toarray(), columns=vectorizer.get_feature_names_out())
     return dtm_bow_df
 
-def topic_preprocess(config_path, combine_nodups_path:str = None, combine_dups_path: str = None, text_column:str = 'no_stopwords')-> dict:
+def topic_modeling_preprocessing(config_path, english_tweets_path:str = None, text_column:str = 'no_stopwords')-> dict:
     """
     Preprocess Biden, Trump, and combined datasets for topic modeling using CountVectorizer and TfidfVectorizer.
     """
     # Load configuration
     config = load_config(config_path)
     
-    if combine_dups_path is None:
-        combine_dups_path = config['data']['output_path']
-
-    if combine_nodups_path is None:
-        combine_nodups_path = config['data']['output_path_no_dups']
+    if english_tweets_path is None:
+        english_tweets_path = config['data']['output_path']
 
     #Load all the dataset
     print("Loading dataset...", flush=True)
-    combine_nodups = load_data(combine_nodups_path)
-    combine_dups = load_data(combine_dups_path)
+    english_tweets = load_data(english_tweets_path)
 
     #Strip out all the whitespace or special characters
-    combine_nodups.columns = combine_nodups.columns.str.strip()
-    combine_dups.columns = combine_dups.columns.str.strip()
+    english_tweets.columns = english_tweets.columns.str.strip()
 
     #Split the dataset into trump and biden
-    trump_data = combine_nodups[combine_nodups['candidate_name'] == 'trump']
-    biden_data = combine_nodups[combine_nodups['candidate_name']=='biden']
+    trump_data = english_tweets[english_tweets['candidate_name'] == 'trump']
+    biden_data = english_tweets[english_tweets['candidate_name']=='biden']
+    both_data = english_tweets[english_tweets['candidate_name']=='both']
 
     #Initialize a new dictionary
     results ={}
@@ -86,7 +82,7 @@ def topic_preprocess(config_path, combine_nodups_path:str = None, combine_dups_p
 
     #Process all the dataset for each candidate and as a whole
     #Process biden dataset
-    print("Processing Biden dataset...")
+    print("Processing 'biden' dataset...")
     biden_count_dtm = create_dtm(biden_data, text_column, count_vect)
     biden_tfidf_dtm = create_dtm(biden_data, text_column, tfidf_vect)
 
@@ -96,7 +92,7 @@ def topic_preprocess(config_path, combine_nodups_path:str = None, combine_dups_p
     }
 
     # Process Trump dataset
-    print("Processing Trump dataset...")
+    print("Processing 'trump' dataset...")
     trump_count_dtm = create_dtm(trump_data, text_column, count_vect)
     trump_tfidf_dtm = create_dtm(trump_data, text_column, tfidf_vect)
 
@@ -106,13 +102,13 @@ def topic_preprocess(config_path, combine_nodups_path:str = None, combine_dups_p
     }
 
     #Process the combine dataset
-    print("Processing combine dataset with duplicates...")
-    combine_count_dtm = create_dtm(combine_dups, text_column, count_vect)
-    combine_tfidf_dtm = create_dtm(combine_dups, text_column, tfidf_vect)
+    print("Processing 'both' dataset...")
+    both_count_dtm = create_dtm(both_data, text_column, count_vect)
+    both_tfidf_dtm = create_dtm(both_data, text_column, tfidf_vect)
 
-    results['combine'] = {
-        'count_dtm': combine_count_dtm,
-        'tfidf_dtm': combine_tfidf_dtm
+    results['both'] = {
+        'count_dtm': both_count_dtm,
+        'tfidf_dtm': both_tfidf_dtm
     }
 
     print("Topic Modeling Preprocessing Complete!")
@@ -121,6 +117,6 @@ def topic_preprocess(config_path, combine_nodups_path:str = None, combine_dups_p
 
 if __name__ == '__main__':
     config_path = 'conf/config.yaml'
-    results = topic_preprocess(config_path)
+    results = topic_modeling_preprocessing(config_path)
 
 
