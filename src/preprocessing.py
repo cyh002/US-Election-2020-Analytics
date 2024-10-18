@@ -40,6 +40,42 @@ def load_data(path: str) -> pd.DataFrame:
     data = pd.read_csv(path, header=0, lineterminator='\n')
     return data
 
+def cast_data_type(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Casts the columns of the DataFrame to appropriate data types based on their content.
+
+    Parameters:
+    df (pd.DataFrame): The input DataFrame with mixed data types.
+
+    Returns:
+    pd.DataFrame: DataFrame with corrected data types.
+    """
+    # Define the column casting
+    df['tweet_id'] = df['tweet_id'].astype(str)  # Cast tweet_id to string to preserve precision
+    df['likes'] = df['likes'].astype(int)  # Cast likes to integer
+    df['retweet_count'] = df['retweet_count'].astype(int)  # Cast retweet_count to integer
+    df['user_id'] = df['user_id'].astype(str)  # Cast user_id to string to preserve precision
+    df['user_id_post_count'] = df['user_id_post_count'].astype(int)  # Cast user_id_post_count to integer
+    df['days_from_join_date'] = df['days_from_join_date'].astype(int)  # Cast days_from_join_date to integer
+    df['user_followers_count'] = df['user_followers_count'].astype(int)  # Cast user_followers_count to integer
+    df['sentiment'] = df['sentiment'].astype(int)  # Cast sentiment to integer
+    df['confidence'] = df['confidence'].astype(float)  # Cast confidence to float
+    df['engagement'] = df['engagement'].astype(float)  # Cast engagement to float
+    df['normalized_scores'] = df['normalized_scores'].astype(float)  # Cast normalized_scores to float
+    
+    # Ensure string types for text fields
+    df['source'] = df['source'].astype(str)
+    df['user_description'] = df['user_description'].astype(str)
+    df['state'] = df['state'].astype(str)
+    df['hashtag'] = df['hashtag'].astype(str)
+    df['clean_tweet'] = df['clean_tweet'].astype(str)
+    df['no_stopwords'] = df['no_stopwords'].astype(str)
+    df['created_date'] = pd.to_datetime(df['created_date'], errors='coerce')  # Cast created_date to datetime
+    df['created_time'] = pd.to_datetime(df['created_time'], format='%H:%M:%S', errors='coerce').dt.time  # Cast created_time to time
+    
+    return df
+    
+
 # Add candidate name to data
 def candidate_name(data: pd.DataFrame, name: str) -> pd.DataFrame:
     """
