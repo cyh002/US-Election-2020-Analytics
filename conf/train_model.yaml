@@ -1,0 +1,11 @@
+lda_params:
+  topics:
+    start: 3
+    end: 15
+    step: 1
+  topic_word_prior: 
+    - 0.001
+    - 0.01
+  doc_topic_prior: 
+    - 0.001
+    - 0.01
