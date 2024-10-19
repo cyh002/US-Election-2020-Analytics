@@ -10,6 +10,7 @@ from nltk.tokenize import TweetTokenizer
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 import yaml
+import datetime as dt
 
 # Load config file
 def load_config(path: str = 'conf/config.yaml') -> dict:
@@ -37,7 +38,7 @@ def load_data(path: str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Loaded DataFrame with the data from the CSV file.
     """
-    data = pd.read_csv(path, header=0, lineterminator='\n')
+    data = pd.read_csv(path, header=0, lineterminator='\n', low_memory=False, encoding='utf-8-sig')
     return data
 
 def cast_data_type(df: pd.DataFrame) -> pd.DataFrame:
@@ -112,6 +113,13 @@ def merge_df(data1: pd.DataFrame, data2: pd.DataFrame) -> pd.DataFrame:
     assert list(data1.columns) == list(data2.columns), "The dataframes do not have the same column headers."
     combine_data = pd.concat([data1, data2], ignore_index=True)
     return combine_data
+
+def clean_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Strip whitespace and normalize column names to avoid mismatches.
+    """
+    df.columns = df.columns.str.strip().str.lower().astype(str)
+    return df
 
 # Filter by country and state
 def filter_country(data: pd.DataFrame, country: list) -> pd.DataFrame:
@@ -228,7 +236,7 @@ def remove_stopwords(tweet: str) -> list:
                  and not token.startswith('@')]
     return tokenized
 
-def remove_dups_retweets(data, col_name: str, keep_type):
+def remove_duplicates_retweets(data, col_name: str):
     """
     Remove duplicate tweets and retwets.
 
@@ -240,13 +248,36 @@ def remove_dups_retweets(data, col_name: str, keep_type):
     """
     assert col_name in data.columns, f"Error: {col_name} is not a valid column. Available columns are: {list(data.columns)}"
     assert isinstance(col_name, str), "Error: col_name must be a string"
-    assert keep_type in ['first', 'last', False], "Error: keep_type must be 'first', 'last', or False"
 
     #Remove all the retweets
     data = data[~data[col_name].str.startswith('RT')]
 
-    #Drop all the duplicates
-    data = data.drop_duplicates(subset=col_name, keep=keep_type)
+    #Drop the first occurrence of each duplicate
+    data = data.drop_duplicates(subset = col_name, keep = 'first')
+    
+    return data
+
+def remove_duplicates_renamed(data, col_name: str):
+    """
+    Remove duplicate tweets and retwets.
+
+    Args:
+        tweet (str): Tweet text to process.
+
+    Returns:
+        list: List of tweets that are non_duplicates. 
+    """
+    assert col_name in data.columns, f"Error: {col_name} is not a valid column. Available columns are: {list(data.columns)}"
+    assert isinstance(col_name, str), "Error: col_name must be a string"
+
+    #Identify all the duplicates
+    duplicates = data[data.duplicated(subset = col_name,keep=False)]
+
+    #Rename all the duplicates as 'both'
+    data.loc[duplicates.index,'candidate_name'] ='both'
+
+    #Drop the first occurrence of each duplicate
+    data = data.drop_duplicates(subset = col_name, keep = 'last')
     
     return data
 
@@ -280,9 +311,6 @@ def run_preprocessing_pipeline(config_path: str, trump_path: str = None, biden_p
     
     if output_path is None:
         output_path = config['data']['output_path']
-    
-    if output_path_no_dups is None:
-        output_path_no_dups = config['data']['output_path_no_dups']
 
     # Load Trump and Biden data
     print("Loading data...")
@@ -294,9 +322,23 @@ def run_preprocessing_pipeline(config_path: str, trump_path: str = None, biden_p
     trump_data = candidate_name(trump_data, 'trump')
     biden_data = candidate_name(biden_data, 'biden')
 
+    print('Removing duplicates and retweets from trump and biden dataset...')    
+    #Drop the retweets and duplicates from each dataset
+    trump_data = remove_duplicates_retweets(trump_data,'tweet')
+    biden_data = remove_duplicates_retweets(biden_data,'tweet')
+
+    trump_data = clean_columns(trump_data)
+    biden_data = clean_columns(biden_data)
+
     # Merge datasets
     print("Merging datasets...")
     combined_data = merge_df(trump_data, biden_data)
+    combined_data.reset_index(drop=True, inplace=True)
+  
+    #Remove the duplicates
+    print('Removing duplicates and renamed for merged dataset...')
+    #Keep all the first tweets
+    combined_data = remove_duplicates_renamed(combined_data, 'tweet')
 
     # Filter by US country and states
     print("Filtering data by country and state...")
@@ -309,33 +351,25 @@ def run_preprocessing_pipeline(config_path: str, trump_path: str = None, biden_p
     print(us_state.columns)
     
     # Detect English tweets
-    print("Detecting English tweets...")
+    print("Detecting english tweets...")
     english_tweets = us_state.loc[us_state['clean_tweet'].apply(detect_english_tweets)]
 
     # # Tokenize and remove stopwords
     print("Tokenizing and removing stopwords...")
     english_tweets.loc[:, 'no_stopwords'] = english_tweets['clean_tweet'].apply(remove_stopwords)
 
-    #Remove the duplicates
-    print('Removing Duplcates and Retweets...')
-    print(english_tweets.columns)
-    #Keep all the first tweets
-    tweets_with_dup = remove_dups_retweets(english_tweets, 'tweet', keep_type='first')
-    #Do not keep all the duplicate tweets
-    tweets_no_dup = remove_dups_retweets(english_tweets, 'tweet', keep_type=False)
+    #Drop duplicated clean_tweet
+    print("Removing duplicate clean_tweet")
+    english_tweets = english_tweets.drop_duplicates(subset="clean_tweet", keep = "first")
 
-     # Save both datasets (Optional)
+    # Save datasets (Optional)
     print("Saving preprocessed data with duplicates...")
-    tweets_with_dup.to_csv(output_path, index=False)
+    english_tweets.to_csv(output_path, index=False, encoding='utf-8-sig')
     print(f"Preprocessed data with duplicates saved to {output_path}")
-
-    print("Saving preprocessed data without duplicates...")
-    tweets_no_dup.to_csv(output_path_no_dups, index=False)
-    print(f"Preprocessed data without duplicates saved to {output_path_no_dups}")
     
     print("Preprocessing pipeline completed.")
     
-    return tweets_with_dup, tweets_no_dup
+    return english_tweets
 
 if __name__ == '__main__':
     config_path = 'conf/config.yaml'

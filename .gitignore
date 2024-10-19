@@ -3,15 +3,6 @@ src/__pycache__/*
 
 #Ignore all the data inside the data file
 data/*
-src/__pycache__/*
-test.ipynb
-
-#Ignore virtual environment file
-project6242/
-
-#Ignore all the proposal file
-proposal/
 
 test.ipynb
-src/print_unique_values.py
 tests/__pycache__/*

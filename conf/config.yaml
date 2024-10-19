@@ -1,8 +1,8 @@
 data:
-  trump_path: 'data/hashtag_donaldtrump.csv'
-  biden_path: 'data/hashtag_joebiden.csv'
-  output_path: 'data/tweets_with_dup.csv'
-  output_path_no_dups: 'data/tweets_no_dups.csv'
+  trump_path: 'data/raw/hashtag_donaldtrump.csv'
+  biden_path: 'data/raw/hashtag_joebiden.csv'
+  output_path: 'data/cleaned/english_tweets.csv'
+  results_path: 'data/results/'
 
 filter:
   country: 
@@ -70,3 +70,7 @@ vectorizer:
     type: "tfidf" 
     max_features: 1000 #Maximum features
     max_df: 0.5
+
+streamlit:
+  port: 8501
+  
