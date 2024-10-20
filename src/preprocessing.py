@@ -53,13 +53,13 @@ def cast_data_type(df: pd.DataFrame) -> pd.DataFrame:
     """
     # Define the column casting
     df['tweet_id'] = df['tweet_id'].astype(str)  # Cast tweet_id to string to preserve precision
-    df['likes'] = df['likes'].astype(int)  # Cast likes to integer
-    df['retweet_count'] = df['retweet_count'].astype(int)  # Cast retweet_count to integer
+    df['likes'] = df['likes'].astype('Int64')  # Cast likes to integer
+    df['retweet_count'] = df['retweet_count'].astype('Int64')  # Cast retweet_count to integer
     df['user_id'] = df['user_id'].astype(str)  # Cast user_id to string to preserve precision
-    df['user_id_post_count'] = df['user_id_post_count'].astype(int)  # Cast user_id_post_count to integer
-    df['days_from_join_date'] = df['days_from_join_date'].astype(int)  # Cast days_from_join_date to integer
-    df['user_followers_count'] = df['user_followers_count'].astype(int)  # Cast user_followers_count to integer
-    df['sentiment'] = df['sentiment'].astype(int)  # Cast sentiment to integer
+    df['user_id_post_count'] = df['user_id_post_count'].astype('Int64')  # Cast user_id_post_count to integer
+    df['days_from_join_date'] = df['days_from_join_date'].astype('Int64')  # Cast days_from_join_date to integer
+    df['user_followers_count'] = df['user_followers_count'].astype('Int64')  # Cast user_followers_count to integer
+    df['sentiment'] = df['sentiment'].astype('Int64')  # Cast sentiment to integer
     df['confidence'] = df['confidence'].astype(float)  # Cast confidence to float
     df['engagement'] = df['engagement'].astype(float)  # Cast engagement to float
     df['normalized_scores'] = df['normalized_scores'].astype(float)  # Cast normalized_scores to float
