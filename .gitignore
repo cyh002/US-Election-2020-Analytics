@@ -6,3 +6,4 @@ data/*
 
 test.ipynb
 tests/__pycache__/*
+src/streamlit_app/__pycache__/*
