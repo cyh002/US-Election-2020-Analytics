@@ -54,9 +54,9 @@ def candidate_name(data: pd.DataFrame, name: str) -> pd.DataFrame:
         pd.DataFrame: DataFrame with an additional 'candidate_name' column.
     """
     assert isinstance(name, str), 'Strings only!'
-    if 'candidate_name' in data.columns:
-        data.drop('candidate_name', axis=1, inplace=True)
-    data['candidate_name'] = name
+    if 'hashtag' in data.columns:
+        data.drop('hashtag', axis=1, inplace=True)
+    data['hashtag'] = name
     return data
 
 # Merge two dataframes
@@ -170,6 +170,7 @@ def detect_english_tweets(text: str) -> bool:
     Returns:
         bool: True if the tweet is in English, False otherwise.
     """
+    DetectorFactory.seed = 0
     try:
         lang = detect(text)
         return lang == 'en'
@@ -200,7 +201,7 @@ def remove_stopwords(tweet: str) -> list:
                  and not token.startswith('@')]
     return tokenized
 
-def remove_duplicates_retweets(data, col_name: str):
+def remove_duplicates_retweets(data: pd.DataFrame, col_name: str) -> pd.DataFrame:
     """
     Remove duplicate tweets and retwets.
 
@@ -221,7 +222,7 @@ def remove_duplicates_retweets(data, col_name: str):
     
     return data
 
-def remove_duplicates_renamed(data, col_name: str):
+def remove_duplicates_renamed(data:pd.DataFrame, col_name: str)-> pd.DataFrame:
     """
     Remove duplicate tweets and retwets.
 
@@ -238,13 +239,128 @@ def remove_duplicates_renamed(data, col_name: str):
     duplicates = data[data.duplicated(subset = col_name,keep=False)]
 
     #Rename all the duplicates as 'both'
-    data.loc[duplicates.index,'candidate_name'] ='both'
+    data.loc[duplicates.index,'hashtag'] ='both'
 
     #Drop the first occurrence of each duplicate
     data = data.drop_duplicates(subset = col_name, keep = 'last')
     
     return data
 
+def created_date_and_time(df:pd.DataFrame, col_name:str) -> pd.DataFrame:
+    """
+    Extract date and time from a datetime column in the DataFrame.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame.
+        col_name (str): The name of the column containing datetime values.
+
+    Returns:
+        pd.DataFrame: A DataFrame with two new columns, 'created_date' and 'created_time', 
+                      representing the extracted date and time respectively.
+    """
+    #Change the column to datetime
+    df[col_name] = pd.to_datetime(df[col_name], format='%Y-%m-%d %H:%M:%S')
+
+    #Get the corresponding date and time
+    df['created_date'] = pd.to_datetime(df[col_name].dt.date)
+    df['created_time'] = df[col_name].dt.strftime('%H:%M:%S')
+    return df
+
+def days_from_joined_date(df:pd.DataFrame, user_join_column:str, created_column:str)-> pd.DataFrame:
+    """
+    Calculate the number of days from the user's join date to the tweet creation date.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame.
+        user_join_column (str): The name of the column containing user join dates.
+        created_column (str): The name of the column containing tweet creation dates.
+
+    Returns:
+        pd.DataFrame: A DataFrame with a new column 'days_from_join_date' 
+                      indicating the number of days between the two dates.
+
+    Raises:
+        AssertionError: If any 'created_column' value is earlier than 'user_join_column'.
+    """
+    #Change the column to date
+    df[user_join_column] = pd.to_datetime(df[user_join_column]).dt.date
+    df[created_column] = pd.to_datetime(df[created_column]).dt.date
+
+
+    #Write an assert statement to check that all joined_date is older that created_date
+    assert (df[user_join_column] <= df[created_column]).all(), \
+    f"Found rows where '{user_join_column}' is later than '{created_column}'"
+
+    #Find the number of days from joined date
+    df['days_from_join_date'] = (pd.to_datetime(df[created_column]) - pd.to_datetime(df[user_join_column])).dt.days
+    return df
+
+def userid_post_count(df:pd.DataFrame, col_name:str) -> pd.DataFrame:
+    """
+    Calculate the number of posts by each user and add it as a new column.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame.
+        col_name (str): The name of the column containing user IDs.
+
+    Returns:
+        pd.DataFrame: A DataFrame with a new column 'user_id_post_count' 
+                      showing the count of posts for each user.
+    """
+
+    #Get the value count for each user
+    post_count = df[col_name].value_counts()
+
+    #Map the post counts back to the original DataFrame as a new column
+    df['user_id_post_count'] = df[col_name].map(post_count)
+    return df
+
+def columns_to_keep(df:pd.DataFrame, column_datatype_list: list) -> pd.DataFrame:
+    """
+    Ensure the DataFrame contains necessary columns with specified data types 
+    and keeps only the required columns.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame.
+        column_datatype_list (list): A list of dictionaries, each containing:
+            - 'name' (str): The column name.
+            - 'dtype' (str): The data type (e.g., 'int', 'float', 'datetime', 'string', 'list').
+
+    Returns:
+        pd.DataFrame: A DataFrame containing only the required columns with 
+                      values converted to the specified data types. 
+                      Missing columns are filled with None.
+
+    Raises:
+        ValueError: If a data type in the configuration is not supported.
+    """
+    #Get the required columns
+    required_columns = [col['name'] for col in column_datatype_list]
+     # Create a dictionary of {column_name: dtype} from the config
+    dtype_mapping = {col['name']: col['dtype'] for col in column_datatype_list}
+
+    # Ensure the DataFrame has all necessary columns, or add them with default values
+    for col_name in required_columns:
+        if col_name not in df.columns:
+            df[col_name] = None  # Add missing columns with None
+
+    for col_name, dtype in dtype_mapping.items():
+        if dtype == 'datetime':
+            df[col_name] = pd.to_datetime(df[col_name], errors='coerce')
+        elif dtype == 'int':
+            df[col_name] = pd.to_numeric(df[col_name], errors='coerce').astype('Int64')
+        elif dtype == 'float':
+            df[col_name] = pd.to_numeric(df[col_name], errors='coerce').astype(float)
+        elif dtype == 'string':
+            df[col_name] = df[col_name].astype(str)
+        else:
+            # If dtype is 'list', skip processing and leave the column as-is
+            continue
+    
+    # Keep only the required columns
+    df = df[required_columns]
+
+    return df
 
 def run_preprocessing_pipeline(config_path: str, trump_path: str = None, biden_path: str = None, output_path: str = None, output_path_no_dups: str = None) -> (pd.DataFrame, pd.DataFrame):
     """
@@ -326,9 +442,23 @@ def run_preprocessing_pipeline(config_path: str, trump_path: str = None, biden_p
     print("Removing duplicate clean_tweet")
     english_tweets = english_tweets.drop_duplicates(subset="clean_tweet", keep = "first")
 
+    #Feature Engineering
+    print("Splitting the 'created_at' to 'created_date' and 'created_time'...")
+    final_results = created_date_and_time(english_tweets, 'created_at')
+
+    print("Finding days between tweet created date and user_joined_date...")
+    final_results = days_from_joined_date(final_results, 'user_join_date', 'created_date')
+
+    print("Finding the number of post per user")
+    final_results = userid_post_count(final_results, "user_id")
+
+    #Cast the dataframe back to the right datatype and get the columns needed
+    print("Casting the dataframe back to the right datatypes...")
+    final_results = columns_to_keep(final_results, config['columns_to_keep'])
+
     # Save datasets (Optional)
     print("Saving preprocessed data with duplicates...")
-    english_tweets.to_csv(output_path, index=False, encoding='utf-8-sig')
+    final_results.to_csv(output_path, index=False, encoding='utf-8-sig')
     print(f"Preprocessed data with duplicates saved to {output_path}")
     
     print("Preprocessing pipeline completed.")

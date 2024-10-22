@@ -1,25 +1,42 @@
-def engagement_score(likes: int, retweets: int, followers: int) -> float:
+import pandas as pd
+import numpy as np
+def engagement_score(likes: pd.Series, retweets: pd.Series, followers: pd.Series) -> pd.Series:
     """
-    Calculate the engagement rate as 100% + (Engagement (Likes + Retweets) / Number of followers).
-    
+    Vectorized version of the engagement score function.
+
     Args:
-        likes (int): The number of likes on the post.
-        retweets (int): The number of retweets on the post.
-        followers (int): The number of followers of the account.
+        likes (pd.Series): Series of likes.
+        retweets (pd.Series): Series of retweets.
+        followers (pd.Series): Series of follower counts.
 
     Returns:
-        float: The engagement rate as a percentage.
-        
-    Example:
-        >>> calculate_engagement_rate(50, 30, 1000)
-        108.0
+        pd.Series: Series of engagement scores.
     """
-    if followers == 0:
-        raise ValueError("Number of followers cannot be zero.")
-    
+    # Calculate total engagement (likes + retweets)
     engagement = likes + retweets
-    engagement_rate = 100 + (engagement / followers) * 100
+
+    # Use NumPy to avoid division by zero errors
+    engagement_rate = np.where(
+        followers > 0, 
+        100 + (engagement / followers) * 100, 
+        0.0  # If followers == 0, set engagement rate to 0.0
+    )
+
+    return pd.Series(engagement_rate, index=followers.index)
+
+def normalization(engagement: pd.Series, sentiment: pd.Series, confidence: pd.Series) -> pd.Series:
+    """
+    Calculate the normalized score by multiplying engagement, sentiment, and confidence.
+
+    Args:
+        engagement (pd.Series): Series of engagement scores.
+        sentiment (pd.Series): Series of sentiment scores.
+        confidence (pd.Series): Series of confidence values.
+
+    Returns:
+        pd.Series: Series of normalized scores.
+    """
+    # Ensure element-wise multiplication
+    normalize = engagement * sentiment * confidence
+    return normalize
     
-    print(f"Likes: {likes}, Retweets: {retweets}, Followers: {followers}, Engagement Rate: {engagement_rate}%")
-    
-    return engagement_rate
