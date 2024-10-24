@@ -61,9 +61,9 @@ def topic_modeling_preprocessing(config_path, english_tweets_path:str = None, te
     english_tweets.columns = english_tweets.columns.str.strip()
 
     #Split the dataset into trump and biden
-    trump_data = english_tweets[english_tweets['candidate_name'] == 'trump']
-    biden_data = english_tweets[english_tweets['candidate_name']=='biden']
-    both_data = english_tweets[english_tweets['candidate_name']=='both']
+    trump_data = english_tweets[english_tweets['hashtag'] == 'trump']
+    biden_data = english_tweets[english_tweets['hashtag']=='biden']
+    both_data = english_tweets[english_tweets['hashtag']=='both']
 
     #Initialize a new dictionary
     results ={}

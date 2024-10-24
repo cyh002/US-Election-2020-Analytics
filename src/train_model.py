@@ -23,7 +23,7 @@ def random_sample(dtm: pd.DataFrame, random_seed: int, sample_size:int) -> pd.Da
         sample_size (int): The number of rows (documents) to sample from the DTM. This must be less than the total number of rows in the DTM.
 
     Returns:
-        sample_dtm (pd.DataFrame): A sparse matrix containing the randomly sampled subset of rows from the original DTM.
+        sample_dtm (pd.DataFrame): A DataFrame containing the randomly sampled subset of rows from the original DTM.
     '''
     #Ensure that the sample size is within the dtm shape
     assert sample_size < dtm.shape[0], "Sample size exceeds the number of rows in the full DTM."
@@ -40,7 +40,7 @@ def lda_model(sample_dtm:pd.DataFrame, topics:int, topic_word_prior:float, doc_t
     Create the LDA model and train it.
     
     Args: 
-        sample_dtm (csr_matrix): The sample of the original document-term matrix (DTM) for training, in sparse format (CSR matrix).
+        sample_dtm (pd.DataFrame): The sample of the original document-term matrix (DTM) for training.
         topics (int): The number of topics to find.
         topic_word_prior (float): Prior for topic-word distribution (beta).
         doc_topic_prior (float): Prior for document-topic distribution (alpha).
@@ -68,7 +68,7 @@ def mean_umass(top_number_words: int, sample_dtm: pd.DataFrame, lda_component: n
     
     Args:
         top_number_words (int): The number of top words per topic to consider when computing coherence.
-        sample_dtm (csr_matrix or np.ndarray): The document-term matrix, where rows represent documents and columns represent terms.
+        sample_dtm (pd.DataFrame): The document-term matrix, where rows represent documents and columns represent terms.
             If passed as a sparse matrix (csr_matrix), it will be converted to a dense format (numpy array).
         lda_component (np.ndarray): The topic-word distribution matrix from the LDA model. 
             Shape is (n_topics, n_words), where each row represents a topic, and each column represents a word's importance in that topic.
@@ -249,6 +249,7 @@ def training_pipeline(config_path: str, dtm=None, col_name: str = 'no_stopwords'
     best_params['topics'] = int(best_params['topics'])  # Ensure 'topics' is an integer
     best_model = lda_model(dtm, **best_params, random_state=random_state)  # Removed 'vectorizer' as it's not used in lda_model
     vocab = vectorizer.get_feature_names_out()
+    best_component = best_model.components_
 
     # Check if the document-term matrix (dtm) is a CSR matrix, if not convert it
     if not isinstance(dtm, csr_matrix):
@@ -261,7 +262,7 @@ def training_pipeline(config_path: str, dtm=None, col_name: str = 'no_stopwords'
 
     print("Training process is completed!")
 
-    return lda_display
+    return lda_display, best_component
 
 if __name__ == '__main__':
     config_path = 'conf/train_model.yaml'
