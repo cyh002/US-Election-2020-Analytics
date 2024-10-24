@@ -249,6 +249,7 @@ def training_pipeline(config_path: str, dtm=None, col_name: str = 'no_stopwords'
     best_params['topics'] = int(best_params['topics'])  # Ensure 'topics' is an integer
     best_model = lda_model(dtm, **best_params, random_state=random_state)  # Removed 'vectorizer' as it's not used in lda_model
     vocab = vectorizer.get_feature_names_out()
+    best_component = best_model.components_
 
     # Check if the document-term matrix (dtm) is a CSR matrix, if not convert it
     if not isinstance(dtm, csr_matrix):
@@ -261,7 +262,7 @@ def training_pipeline(config_path: str, dtm=None, col_name: str = 'no_stopwords'
 
     print("Training process is completed!")
 
-    return lda_display
+    return lda_display, best_component
 
 if __name__ == '__main__':
     config_path = 'conf/train_model.yaml'
