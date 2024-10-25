@@ -467,4 +467,4 @@ def run_preprocessing_pipeline(config_path: str, trump_path: str = None, biden_p
 
 if __name__ == '__main__':
     config_path = 'conf/config.yaml'
-    tweets_with_dup, tweets_no_dup = run_preprocessing_pipeline(config_path)
+    final_results = run_preprocessing_pipeline(config_path)
