@@ -1,3 +1,5 @@
+# streamlit.py
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -13,6 +15,7 @@ from src.streamlit_app.misc_app_utils import get_geojson_state_names, compare_st
 import os
 from src.misc_utils import engagement_score, normalization, normalize_scores
 from datetime import datetime, timedelta, date
+from src.llm_analyzer import LLMAnalyzer  # New Import
 # ------------------------------------------------------------
 # Streamlit Twitter Sentiment Analysis Dashboard
 # ------------------------------------------------------------
@@ -40,6 +43,7 @@ Welcome to the Twitter Sentiment Analysis Dashboard! This application visualizes
 - **Word Clouds:** Explore common words used in tweets for each hashtag.
 - **Sentiment Distribution:** Understand the distribution of sentiment scores by hashtag.
 - **User Influence:** Analyze the relationship between user followers and sentiment.
+- **Latest Day Analysis:** Perform in-depth analysis on the latest day's data, including anomaly detection, key topics, and key trends.
 
 Use the sidebar filters to customize your view and dive deep into the data.
 """)
@@ -74,6 +78,12 @@ config = load_config('conf/config.yaml')
 
 # Load data
 data = load_and_cast_data(config)
+
+# Initialize LLMAnalyzer
+openai_api_key = config['openai']['api_key']
+llm_analyzer = LLMAnalyzer(openai_api_key=openai_api_key)
+# check if the model is working
+print(llm_analyzer.test_model())
 
 # -------------------------
 # 4. Sidebar Filters
@@ -170,7 +180,38 @@ st.write(filtered_data[columns_to_display])
 st.write(f"**Total Tweets:** {filtered_data.shape[0]}")
 
 # -------------------------
-# 7. Comparative Choropleth Map
+# 7. Latest Day Analysis (Updated Section)
+# -------------------------
+st.header("📅 Latest Day Analysis")
+
+if not filtered_data.empty:
+    # Filter data for the latest day
+    latest_day_data = llm_analyzer.filter_latest_day(filtered_data)
+    columns_to_analyze = ['clean_tweet', 'engagement']
+    
+    latest_day_data = latest_day_data[columns_to_analyze]
+    latest_date = filtered_data['created_date'].max()
+    
+    # Limiting tweets for testing to prevent token overflow
+    latest_day_data = latest_day_data.head(10)
+    st.subheader(f"Analysis for {latest_date}")
+
+    if latest_day_data.empty:
+        st.warning("No data available for the latest day.")
+    else:
+        with st.spinner("Performing analysis..."):
+            # Generate analysis report using LLMAnalyzer
+            analysis_report = llm_analyzer.generate_daily_report(latest_day_data)
+        
+        if analysis_report:
+            # Display the structured report
+            st.markdown(f"### 📄 Report for {latest_date}")
+            st.json(analysis_report.dict())  # Displaying report as JSON for readability
+else:
+    st.warning("No data available after applying the selected filters.")
+
+# -------------------------
+# 8. Comparative Choropleth Map
 # -------------------------
 def create_comparative_choropleth_map(df: pd.DataFrame, geojson_url: str, geojson_states: list, date_range: tuple) -> None:
     """
@@ -265,7 +306,7 @@ def create_comparative_choropleth_map(df: pd.DataFrame, geojson_url: str, geojso
 create_comparative_choropleth_map(filtered_data, geojson_url, geojson_state_names, selected_date_range)
 
 # -------------------------
-# 8. Sentiment Distribution by Hashtag
+# 9. Sentiment Distribution by Hashtag
 # -------------------------
 def sentiment_distribution_by_hashtag(df: pd.DataFrame) -> None:
     """
@@ -298,7 +339,7 @@ def sentiment_distribution_by_hashtag(df: pd.DataFrame) -> None:
 sentiment_distribution_by_hashtag(filtered_data)
 
 # -------------------------
-# 9. Time Series Analysis
+# 10. Time Series Analysis
 # -------------------------
 def time_series_analysis(df: pd.DataFrame) -> None:
     """
@@ -352,7 +393,7 @@ def time_series_analysis(df: pd.DataFrame) -> None:
 time_series_analysis(filtered_data)
 
 # -------------------------
-# 10. Word Cloud Generation
+# 11. Word Cloud Generation
 # -------------------------
 def generate_word_cloud(df: pd.DataFrame, selected_hashtags: List[str]) -> None:
     """
@@ -383,7 +424,7 @@ def generate_word_cloud(df: pd.DataFrame, selected_hashtags: List[str]) -> None:
 generate_word_cloud(filtered_data, selected_hashtag)
 
 # -------------------------
-# 11. User Influence Analysis
+# 12. User Influence Analysis
 # -------------------------
 def user_influence(df: pd.DataFrame) -> None:
     """
@@ -430,7 +471,7 @@ def user_influence(df: pd.DataFrame) -> None:
 user_influence(filtered_data)
 
 # -------------------------
-# 12. Footer
+# 13. Footer
 # -------------------------
 st.markdown("""
 ---

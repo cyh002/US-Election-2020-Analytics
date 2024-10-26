@@ -110,3 +110,7 @@ columns_to_keep:
     dtype: "string"
   - name: "no_stopwords"
     dtype: "list"
+
+openai:
+  api_key: ''
+  base_url: 'https://api.deepseek.com' 

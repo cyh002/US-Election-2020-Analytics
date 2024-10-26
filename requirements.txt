@@ -73,3 +73,5 @@ pyLDAvis
 
 jupyter_bokeh
 hvplot
+umap
+langchain_openai
