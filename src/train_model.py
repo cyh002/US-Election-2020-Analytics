@@ -12,30 +12,66 @@ import pyLDAvis
 import pyLDAvis.gensim
 import pyLDAvis.lda_model
 from scipy.sparse import csr_matrix
+from IPython.display import display as ipy_display, HTML
+import seaborn as sns
+import umap.umap_ as umap
 
-def random_sample(dtm: pd.DataFrame, random_seed: int, sample_size:int) -> pd.DataFrame:
-    '''
-    Randomly sample a subset of rows from a document-term matrix (DTM) based on the specified sample size and random seed.
+def stratified_sample_dtm(dtm: csr_matrix, sample_size, stratify_bins=5, random_seed=42):
+    """
+    Perform stratified sampling on a large sparse document-term matrix (DTM) 
+    based on document length bins (number of non-zero terms per document).
 
     Args:
-        dtm (pd.DataFrame): A document-term matrix where rows correspond to documents and columns represent terms.
-        random_seed (int): Used to ensure reproducibility of the random sampling process.
-        sample_size (int): The number of rows (documents) to sample from the DTM. This must be less than the total number of rows in the DTM.
+        dtm (csr_matrix): A sparse matrix where rows are documents and columns are terms.
+        stratify_bins (int): Number of bins to create for stratified sampling (default is 5).
+        sample_size (int): Total number of documents to sample (must be <= total number of documents).
+        random_seed (int): Seed for reproducibility.
 
     Returns:
-        sample_dtm (pd.DataFrame): A DataFrame containing the randomly sampled subset of rows from the original DTM.
-    '''
-    #Ensure that the sample size is within the dtm shape
-    assert sample_size < dtm.shape[0], "Sample size exceeds the number of rows in the full DTM."
-    #Insert random seed
+        sample_dtm (csr_matrix): A stratified sample of the original DTM in sparse format.
+    """
+    # Set random seed for reproducibility- fix the random seed so that the same stratified sample will be chosen
     np.random.seed(random_seed)
-    # Sample rows directly from the sparse matrix without converting the entire matrix to dense format
-    sample_indices = np.random.choice(dtm.shape[0], sample_size, replace=False)
-    #Create the sample dtm
-    sample_dtm = pd.DataFrame(dtm.iloc[sample_indices])
+
+    #Make sure that the dtm is a csr_matrix
+    if not isinstance(dtm, csr_matrix):
+        dtm = csr_matrix(dtm)  # Convert to sparse format
+
+    # Calculate the number of non-zero terms per document (document length)
+    doc_lengths = np.array(dtm.getnnz(axis=1))
+
+    # Create bins based on document lengths
+    bins = pd.qcut(doc_lengths, q=stratify_bins, duplicates='drop', labels=False)
+
+    # Store indices of sampled documents
+    sampled_indices = []
+
+    # Calculate how many samples to draw from each bin
+    bin_counts = np.bincount(bins)  # Number of documents in each bin
+    bin_sample_sizes = (bin_counts / bin_counts.sum() * sample_size).astype(int)
+
+    # Stratified sampling within each bin
+    for bin_id, bin_size in enumerate(bin_sample_sizes):
+        bin_indices = np.where(bins == bin_id)[0]  # Indices of documents in this bin
+        bin_sample = np.random.choice(bin_indices, size=bin_size, replace=False)  # Sample within bin
+        sampled_indices.extend(bin_sample)
+
+    # Ensure sampled_indices is the desired sample size (in case rounding caused off-by-1 error)
+    if len(sampled_indices) < sample_size:
+        extra_needed = sample_size - len(sampled_indices)
+        remaining_indices = np.setdiff1d(np.arange(dtm.shape[0]), sampled_indices)
+        extra_sample = np.random.choice(remaining_indices, size=extra_needed, replace=False)
+        sampled_indices.extend(extra_sample)
+
+    # Convert sampled indices to a sorted array for efficient indexing
+    sampled_indices = np.sort(sampled_indices)
+
+    # Extract the sampled DTM in sparse format
+    sample_dtm = dtm[sampled_indices, :]
+
     return sample_dtm
 
-def lda_model(sample_dtm:pd.DataFrame, topics:int, topic_word_prior:float, doc_topic_prior:float, random_state:int = 123):
+def lda_model(sample_dtm:pd.DataFrame, topics:int, topic_word_prior:float, doc_topic_prior:float, random_state:int):
     '''
     Create the LDA model and train it.
     
@@ -49,6 +85,9 @@ def lda_model(sample_dtm:pd.DataFrame, topics:int, topic_word_prior:float, doc_t
     Returns:
         lda (LatentDirichletAllocation): A trained LDA model from sklearn that contains the topic-word distributions and other attributes.
     '''
+    #State explicitly and change it to int
+    topics = int(topics)
+
     # Fit the LDA model
     lda = LDA(n_components=topics,
               topic_word_prior=topic_word_prior,
@@ -91,7 +130,7 @@ def mean_umass(top_number_words: int, sample_dtm: pd.DataFrame, lda_component: n
     mean_umass = np.mean(umass)
     return mean_umass
 
-def train_and_evaluate(model, params: dict, train_sample, vectorizer, top_words: int, random_state:int = 123) -> pd.DataFrame:
+def train_and_evaluate(model, params: dict, train_sample, vectorizer, top_words: int, random_state:int) -> pd.DataFrame:
     '''
     Train and evaluate the LDA model with different hyperparameter combinations and calculate the UMass coherence score for each.
 
@@ -198,7 +237,175 @@ def view_best_score(df:pd.DataFrame, x_label:str ='Number of Topics', y_label:st
     # Show the plot
     plt.show()
 
-def training_pipeline(config_path: str, dtm=None, col_name: str = 'no_stopwords', vectorizer=None, random_seed: int = 0, sample_size: int = 5000, topn: int = 10, random_state: int = 123):
+def top_words_from_topic(component: np.array, vocab: np.array, topn:int = 10) -> list:
+    """
+    Extract the top words from each topic based on their importance scores.
+
+    Args: 
+        component (np.array): The topic-word matrix from the LDA model, where 
+                              each row corresponds to a topic and each column 
+                              represents a word's importance in that topic.
+        vocab (np.array): The array of vocabulary words corresponding to the columns of the topic-word matrix.
+        topn (int): The number of top words to extract for each topic (default is 10).
+
+    Returns:
+        list: A list where each element contains the top words for a topic.
+
+    """
+    top_words_per_topic = []
+
+    for top in range(component.shape[0]):
+        top_words = component[top,:].argsort()[-topn:][::-1].tolist()
+        words = vocab[top_words]
+        top_words_per_topic.append(words)
+        print(f"Topic {top} words: {'|'.join(words)}")
+    return top_words_per_topic
+
+def display_pyldavis(display):
+    """
+    Render a pyLDAvis visualization in a Jupyter notebook.
+
+    Args:
+        display: The prepared pyLDAvis visualization object.
+
+    This function converts the pyLDAvis visualization into HTML format and displays it using IPython's display tools. It provides a seamless way to 
+    view interactive topic model visualizations within Jupyter notebooks. The visualization offers insights into topic distributions, word relevance, 
+    and relationships between topics in the trained model.
+    """
+    html = pyLDAvis.prepared_data_to_html(display)  # Convert to HTML
+    ipy_display(HTML(html))
+    # pyLDAvis.enable_notebook()
+    pyLDAvis.display(display)
+
+def jaccard_similarity(topic_a: np.array, topic_b: np.array)-> float:
+    """
+    Calculate the Jaccard similarity between two sets of topics.
+
+    The Jaccard similarity is a measure of similarity between two sets, 
+    defined as the size of the intersection divided by the size of the union 
+    of the sets.
+
+    Args:
+        topic_a (array-like): The top words from topic A.
+        topic_b (array-like): The top words from topic B.
+
+    Returns:
+        float: The Jaccard similarity value, ranging from 0 to 1.
+               A value of 1 indicates identical sets, while 0 indicates no overlap.
+    """
+    intersection = len(set(topic_a).intersection(set(topic_b)))
+    union = len(set(topic_a).union(set(topic_b)))
+    return intersection / union
+
+def similarity_heatmap(topic_words_a: np.array, topic_words_b: np.array):
+    '''
+    Plot a heatmap showing the Jaccard similarity between topics from two different models.
+
+    This function calculates the Jaccard similarity for each pair of topics from two sets of topics 
+    (e.g., from two different models). It visualizes the similarities as a heatmap, where each cell 
+    represents the Jaccard similarity between a topic from Model A and a topic from Model B.
+
+    Args:
+        topic_words_a (list of array-like): A list of word sets representing the topics from Model A.
+        topic_words_b (list of array-like): A list of word sets representing the topics from Model B.
+
+    Returns:
+        None: Displays a heatmap of Jaccard similarities between the topics of the two models.
+    
+    Example:
+        If Model A has 3 topics and Model B has 2 topics, the heatmap will be a 3x2 grid, where 
+        each cell (i, j) shows the Jaccard similarity between the i-th topic of Model A and the 
+        j-th topic of Model B.
+    '''
+    num_topics_a = len(topic_words_a)
+    num_topics_b = len(topic_words_b)
+    overlap_matrix = np.zeros((num_topics_a, num_topics_b))
+
+    # Populate the overlap matrix
+    for i in range(num_topics_a):
+        for j in range(num_topics_b):
+            overlap_matrix[i, j] = jaccard_similarity(topic_words_a[i], topic_words_b[j])
+
+    # Plot the heatmap of the overlap matrix
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(overlap_matrix, annot=True, cmap="coolwarm", cbar=True)
+    plt.title("Top Words Overlap Between Model A and Model B Topics")
+    plt.xlabel("Model B Topics")
+    plt.ylabel("Model A Topics")
+    plt.show()
+
+def document_topic_matrix(model: object, dtm: csr_matrix) -> np.array:
+    '''
+    Generate the document-topic matrix using a topic modeling algorithm.
+
+    This function applies a topic modeling algorithm (such as LDA, NMF, or similar) to 
+    a document-term matrix (DTM) and returns the resulting document-topic matrix. Each row 
+    of the document-topic matrix represents a document, and each column represents a topic, 
+    with values indicating the relevance or contribution of a particular topic to that document.
+
+    Args:
+        model (object): A fitted topic modeling algorithm that implements the `fit_transform` method, 
+                        such as Latent Dirichlet Allocation (LDA) or Non-negative Matrix Factorization (NMF).
+        dtm (csr_matrix): The document-term matrix where rows correspond to documents and columns correspond to terms (words).
+
+    Returns:
+        array-like: A document-topic matrix, where each entry (i, j) represents the weight or relevance of topic j in document i.
+    '''
+    doc_topic_matrix = model.fit_transform(dtm)
+    return doc_topic_matrix
+
+def umap_visualization(doc_topic_matrix: np.arary, n_components:int=2, random_state:int=42):
+    '''
+    Visualize documents in a lower-dimensional space using UMAP and highlight dominant topics.
+
+    This function applies **UMAP (Uniform Manifold Approximation and Projection)** to the 
+    document-topic matrix to reduce its dimensionality for visualization. It plots the documents 
+    in a 2D or 3D space (based on the `n_components` parameter) and colors them according to their 
+    dominant topic, helping to visually inspect topic clusters.
+
+    Args:
+        doc_topic_matrix (array-like): The document-topic matrix, where each row represents 
+                                       a document, and each column represents a topic.
+        n_components (int): The number of components for UMAP projection (default is 2).
+                                      Typically, 2 or 3 components are used for visualization.
+        random_state (int): A seed for reproducibility of UMAP results (default is 42).
+
+    Returns:
+        None: Displays a scatter plot of the UMAP-transformed documents, colored by their dominant topics.
+    '''
+    # Apply UMAP
+    umap_model = umap.UMAP(n_components=n_components, random_state= random_state, n_jobs =1)
+    umap_results = umap_model.fit_transform(doc_topic_matrix)
+
+    # Find the dominant topics
+    dominant_topics = np.argmax(doc_topic_matrix, axis=1)
+
+    #Get the number of unqiue topics
+    num_topics = len(np.unique(dominant_topics))
+
+    #Get the color map
+    cmap = plt.get_cmap('tab10', num_topics)
+
+    # Plot the UMAP-transformed documents with a discrete colormap
+    plt.figure(figsize=(10, 8))
+    scatter = plt.scatter(umap_results[:, 0], umap_results[:, 1], c=dominant_topics, cmap='tab10', s=10, alpha=0.7)
+
+    # Create a legend by plotting invisible points with appropriate colors
+    for topic in range(num_topics):
+        plt.scatter([], [], color=cmap(topic), label=f'Topic {topic}')
+
+    # Add the legend to the plot
+    plt.legend(title='Dominant Topic')
+
+    # Set plot labels and title
+    plt.title("UMAP Visualization of Documents")
+    plt.xlabel("UMAP Component 1")
+    plt.ylabel("UMAP Component 2")
+
+    # Show the plot
+    plt.show()
+
+def training_pipeline(config_path: str, size, dtm=None, col_name: str = 'no_stopwords', vectorizer=None, random_seed: int = 0, sample_size: int = 5000, topn: int = 10, random_state: int = 123):
     '''
     Training pipeline to find the best number of topics, extract top words, and visualize them using pyLDAvis.
 
@@ -228,43 +435,64 @@ def training_pipeline(config_path: str, dtm=None, col_name: str = 'no_stopwords'
                                       lda_params['topics']['end'] + 1,
                                       lda_params['topics']['step']))
 
-    # Generate a small sample of the DTM for hyperparameter tuning
+    # # Generate a small sample of the DTM for hyperparameter tuning
     print("Generating a small training sample...")
-    sample_dtm = random_sample(dtm, random_seed, sample_size)
+    sample_dtm = stratified_sample_dtm(dtm, sample_size=5000)
 
-    # Train and evaluate the model on the sample data
-    print("Training and evaluating on the small sample size...")
-    records = train_and_evaluate(lda_model, lda_params, sample_dtm, vectorizer, top_words=topn, random_state=random_state)
-
-    # Plot the results of training
-    print("Plotting results...")
-    view_best_score(records)
-
-    # Get the best parameters and their corresponding score
-    print("Extracting the best parameters and score...")
-    best_params, best_score = get_best_score(records)
-
-    # Retrain the model on the entire dataset with the best parameters
-    print("Retraining with the best parameters on the full dataset...")
-    best_params['topics'] = int(best_params['topics'])  # Ensure 'topics' is an integer
-    best_model = lda_model(dtm, **best_params, random_state=random_state)  # Removed 'vectorizer' as it's not used in lda_model
-    vocab = vectorizer.get_feature_names_out()
-    best_component = best_model.components_
-
-    # Check if the document-term matrix (dtm) is a CSR matrix, if not convert it
+    # Ensure the DTM is in CSR matrix format
     if not isinstance(dtm, csr_matrix):
-        print("Converting dtm to csr_matrix...")
-        dtm = csr_matrix(dtm)
+        print("Converting DTM to csr_matrix...")
+        dtm = csr_matrix(dtm)  # Convert to sparse format
 
-    # Create pyLDAvis visualization
-    print("Generating the pyLDAvis display...")
-    lda_display = pyLDAvis.lda_model.prepare(best_model, dtm, vectorizer)
+    # Set a seed for reproducibility of random seed generation
+    np.random.seed(42)  
+
+    # Create random seeds
+    random_seeds = np.random.randint(1, 10000, size=size)  # Fixed set of seeds
+    print(f"Generated random seeds: {random_seeds}")
+
+    #  Prepare for multiple seed runs
+    print("Running LDA with different seeds...")
+    results = []  # Store models, displays, scores, and seeds
+    optimal_topic_list = [] #Store the optimal number of topic per run
+
+    for seed in random_seeds:
+        print(f"Training LDA with seed {seed}...")
+
+        # Train and evaluate on a single seed
+        records = train_and_evaluate(lda_model, lda_params, sample_dtm, vectorizer,top_words=topn, random_state=seed)
+        
+        # Get the best parameters and their corresponding score for this seed
+        best_params, best_score = get_best_score(records)
+
+        # Retrain the model on the entire dataset using the best parameters
+        print(f"Retraining with best parameters for seed {seed}...")
+        best_model = lda_model(dtm, **best_params, random_state=seed)
+        vocab = vectorizer.get_feature_names_out()
+        best_component = best_model.components_
+        optimal_topics = best_model.components_.shape[0]
+        optimal_topic_list.append(optimal_topics)
+
+        #Calculate the mean umass score for the best model
+        print(f"Calculating mean UMass coherence score for seed {seed}...")
+        mean_umass_score = mean_umass(topn, dtm, best_component, vocab)
+
+        # Create pyLDAvis visualization
+        print(f"Generating pyLDAvis for seed {seed}...")
+        lda_display = pyLDAvis.lda_model.prepare(best_model, dtm, vectorizer)
+
+        # Store results for this seed
+        results.append((best_model, lda_display, mean_umass_score, seed, best_component))
+
+    # Sort the results by score (highest first)
+    print("Sorting models by score...")
+    sorted_results = sorted(results, key=lambda x: x[2], reverse=True)
 
     print("Training process is completed!")
 
-    return lda_display, best_component
+    return sorted_results, optimal_topic_list
 
 if __name__ == '__main__':
     config_path = 'conf/train_model.yaml'
-    results = training_pipeline(config_path)
+    sorted_results = training_pipeline(config_path)
 
