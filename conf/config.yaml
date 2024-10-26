@@ -75,6 +75,7 @@ streamlit:
   port: 8501
   data: 'data/results/results_xlm.csv'
   geojson_url: 'https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json'
+  llm_analyzer_count: 0  #Number of clean_tweets to analyze
   
 
 columns_to_keep:
@@ -112,5 +113,5 @@ columns_to_keep:
     dtype: "list"
 
 openai:
-  api_key: ''
-  base_url: 'https://api.deepseek.com' 
+  base_url: 'https://api.deepseek.com'
+  model: 'deepseek-chat'

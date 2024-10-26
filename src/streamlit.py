@@ -16,6 +16,7 @@ import os
 from src.misc_utils import engagement_score, normalization, normalize_scores
 from datetime import datetime, timedelta, date
 from src.llm_analyzer import LLMAnalyzer  # New Import
+import dotenv
 # ------------------------------------------------------------
 # Streamlit Twitter Sentiment Analysis Dashboard
 # ------------------------------------------------------------
@@ -63,13 +64,21 @@ def load_and_cast_data(config: Dict) -> pd.DataFrame:
         pd.DataFrame: Processed DataFrame.
     """
     data = pd.read_csv(config['streamlit']['data'])
-    # cast features to appropriate data types first
-    data = cast_data_type(data) 
+    # Cast features to appropriate data types first
+    data = cast_data_type(data)
     data['created_date'] = pd.to_datetime(data['created_date'])
-    # run metrics calculation
-    data['engagement'] = engagement_score(data['likes'], data['retweet_count'], data['user_followers_count'])
-    data['normalized_score'] = normalization(data['engagement'], data['sentiment'], data['confidence'])
-    # cast again for the new columns
+    # Run metrics calculation
+    data['engagement'] = engagement_score(
+        data['likes'],
+        data['retweet_count'],
+        data['user_followers_count']
+    )
+    data['normalized_score'] = normalization(
+        data['engagement'],
+        data['sentiment'],
+        data['confidence']
+    )
+    # Cast again for the new columns
     data = cast_data_type(data)
     return data
 
@@ -80,25 +89,27 @@ config = load_config('conf/config.yaml')
 data = load_and_cast_data(config)
 
 # Initialize LLMAnalyzer
-openai_api_key = config['openai']['api_key']
-llm_analyzer = LLMAnalyzer(openai_api_key=openai_api_key)
-# check if the model is working
+dotenv.load_dotenv() #  just to get the openai api key
+openai_api_key = os.getenv('openai_api_key')
+openai_base_url = config['openai']['base_url']
+openai_model = config['openai']['model']
+llm_analyzer = LLMAnalyzer(openai_api_key=openai_api_key, base_url=openai_base_url, model=openai_model)
+# Check if the model is working
 print(llm_analyzer.test_model())
 
 # -------------------------
 # 4. Sidebar Filters
 # -------------------------
 st.sidebar.header("Filters")
-
-# Organize filters within expandable sections for better UI
 with st.sidebar.expander("📊 Filter Options"):
     # Hashtag Filter
     hashtags = data['hashtag'].unique().tolist()
-    selected_hashtag = st.multiselect(
-        "Select Hashtag(s):",
-        options=hashtags,
-        default=hashtags
-    )
+    selected_hashtag = []
+    
+    st.markdown("**Select Hashtag(s):**")
+    for hashtag in hashtags:
+        if st.checkbox(hashtag, value=True):
+            selected_hashtag.append(hashtag)
     
     # Days from Join Date Slider
     min_days = int(data['days_from_join_date'].min())
@@ -149,7 +160,6 @@ with st.sidebar.expander("📍 GeoJSON State Names"):
 # Apply filters based on sidebar selections
 data['created_date'] = data['created_date'].dt.date
 
-# Apply filters based on sidebar selections
 filtered_data = data[
     (data['hashtag'].isin(selected_hashtag)) &
     (data['days_from_join_date'] >= selected_days) &
@@ -180,9 +190,14 @@ st.write(filtered_data[columns_to_display])
 st.write(f"**Total Tweets:** {filtered_data.shape[0]}")
 
 # -------------------------
-# 7. Latest Day Analysis (Updated Section)
+# 7. Latest Day Analysis 
 # -------------------------
+
+llm_analyzer_count = config['streamlit']['llm_analyzer_count']
+
 st.header("📅 Latest Day Analysis")
+# subheader
+st.subheader(f"Performing analysis on the Top {llm_analyzer_count} Tweets, using Model : {openai_model}")
 
 if not filtered_data.empty:
     # Filter data for the latest day
@@ -193,7 +208,10 @@ if not filtered_data.empty:
     latest_date = filtered_data['created_date'].max()
     
     # Limiting tweets for testing to prevent token overflow
-    latest_day_data = latest_day_data.head(10)
+    # Sort by engagement to get the most engaging tweets
+    latest_day_data = latest_day_data.sort_values(by='engagement', ascending=False)
+    # Limit to 100 tweets
+    latest_day_data = latest_day_data.head(llm_analyzer_count)
     st.subheader(f"Analysis for {latest_date}")
 
     if latest_day_data.empty:
@@ -206,14 +224,36 @@ if not filtered_data.empty:
         if analysis_report:
             # Display the structured report
             st.markdown(f"### 📄 Report for {latest_date}")
-            st.json(analysis_report.dict())  # Displaying report as JSON for readability
+            
+            # Formatting the output for readability
+            st.subheader("Sentiment Analysis")
+            for sentiment in analysis_report.sentiments:
+                st.markdown(f"**Candidate**: {sentiment.candidate}")
+                st.markdown(f"**Sentiment**: {sentiment.sentiment.capitalize()}")
+                st.markdown(f"**Score**: {sentiment.score}")
+                st.markdown(f"**Key Topics**: {', '.join(sentiment.key_topics)}")
+                st.markdown("---")  # Separator for readability
+
+            st.subheader("Overall Analysis")
+            st.markdown(f"**Comparison**: {analysis_report.overall_analysis.comparison}")
+            st.markdown(f"**Confidence Score**: {analysis_report.overall_analysis.confidence_score}")
+
+            if analysis_report.additional_insights:
+                st.subheader("Additional Insights")
+                st.markdown(f"{analysis_report.additional_insights}")
 else:
     st.warning("No data available after applying the selected filters.")
 
 # -------------------------
 # 8. Comparative Choropleth Map
 # -------------------------
-def create_comparative_choropleth_map(df: pd.DataFrame, geojson_url: str, geojson_states: list, date_range: tuple) -> None:
+
+def create_comparative_choropleth_map(
+    df: pd.DataFrame,
+    geojson_url: str,
+    geojson_states: list,
+    date_range: tuple
+) -> None:
     """
     Create and display a choropleth map showing the comparative sentiment scores between 'biden' and 'trump' by state.
 
@@ -223,32 +263,67 @@ def create_comparative_choropleth_map(df: pd.DataFrame, geojson_url: str, geojso
         geojson_states (list): List of state names from the GeoJSON.
         date_range (tuple): Selected date range.
     """
-    st.subheader(f"🌎 Comparative Sentiment Scores by State\n🕒 From {date_range[0]} to {date_range[1]}")
+    st.subheader(
+        f"🌎 Comparative Sentiment Scores by State\n🕒 From {date_range[0]} to {date_range[1]}"
+    )
 
     # Clean state names
     df['state'] = df['state'].str.strip().str.title()
 
-    # Calculate average normalized scores per state and hashtag
-    state_hashtag_scores = df.groupby(['state', 'hashtag'])['normalized_score'].mean().reset_index()
+    # Calculate average normalized scores and total number of tweets per state and hashtag
+    state_hashtag_scores = df.groupby(['state', 'hashtag']).agg(
+        normalized_score=('normalized_score', 'mean'),
+        total_tweets=('tweet_id', 'size'),
+        engagement=('engagement', 'mean')
+    ).reset_index()
 
-    # Pivot the DataFrame to have 'trump' and 'biden' as columns
-    pivot_df = state_hashtag_scores.pivot(index='state', columns='hashtag', values='normalized_score').reset_index()
+    # Pivot the DataFrame to have 'trump' and 'biden' as separate columns
+    pivot_df = state_hashtag_scores.pivot(index='state', columns='hashtag').reset_index()
+
+    # Flatten MultiIndex columns
+    pivot_df.columns = ['_'.join(col).strip() if col[1] else col[0] for col in pivot_df.columns.values]
 
     # Ensure both 'trump' and 'biden' columns are present
-    if 'trump' not in pivot_df.columns:
-        pivot_df['trump'] = 0.0
-    if 'biden' not in pivot_df.columns:
-        pivot_df['biden'] = 0.0
+    for suffix in ['normalized_score', 'total_tweets', 'engagement']:
+        for hashtag in ['trump', 'biden']:
+            column_name = f"{suffix}_{hashtag}"
+            if column_name not in pivot_df.columns:
+                if suffix == 'normalized_score' or suffix == 'engagement':
+                    pivot_df[column_name] = 0.0
+                elif suffix == 'total_tweets':
+                    pivot_df[column_name] = 0
 
-    # Calculate comparative score
-    pivot_df['comparative_score'] = pivot_df['biden'] - pivot_df['trump']
+    # Calculate comparative score (Biden - Trump)
+    pivot_df['comparative_score'] = pivot_df['normalized_score_biden'] - pivot_df['normalized_score_trump']
+
+    # Calculate total tweets across both hashtags
+    pivot_df['total_tweets'] = pivot_df['total_tweets_biden'] + pivot_df['total_tweets_trump']
+
+    # Calculate average engagement across both hashtags
+    pivot_df['average_engagement'] = (pivot_df['engagement_biden'] + pivot_df['engagement_trump']) / 2
 
     # Exclude states not present in GeoJSON
     pivot_df = pivot_df[pivot_df['state'].isin(geojson_states)]
 
-    # Display the pivot_df DataFrame for debugging
+    # Select and rename columns for clarity
+    display_df = pivot_df[[
+        'state',
+        'normalized_score_biden',
+        'normalized_score_trump',
+        'average_engagement',
+        'comparative_score',
+        'total_tweets'
+    ]].rename(columns={
+        'normalized_score_biden': 'Biden Normalized Score',
+        'normalized_score_trump': 'Trump Normalized Score',
+        'average_engagement': 'Average Engagement',
+        'comparative_score': 'Comparative Score (Biden - Trump)',
+        'total_tweets': 'Total Tweets'
+    })
+
+    # Display the DataFrame
     st.write("**Comparative Scores DataFrame:**")
-    st.dataframe(pivot_df[['state', 'biden', 'trump', 'comparative_score']])
+    st.dataframe(display_df)
 
     if pivot_df.empty:
         st.warning("No data available to display the choropleth map.")
@@ -275,7 +350,7 @@ def create_comparative_choropleth_map(df: pd.DataFrame, geojson_url: str, geojso
         (1.0, "blue")
     ]
 
-    # Create the choropleth map with centered color scale
+    # Create the choropleth map with detailed hover information
     fig = px.choropleth(
         pivot_df,
         geojson=us_states_geojson,
@@ -283,11 +358,30 @@ def create_comparative_choropleth_map(df: pd.DataFrame, geojson_url: str, geojso
         featureidkey='properties.name',
         color='comparative_score',
         color_continuous_scale=custom_color_scale,
-        color_continuous_midpoint=0,  # Center the color scale at zero
-        range_color=[-abs_max, abs_max],  # Symmetric range
+        color_continuous_midpoint=0,
+        range_color=[-abs_max, abs_max],
         scope="usa",
         labels={'comparative_score': 'Comparative Score (Biden - Trump)'},
-        hover_data={'state': True, 'comparative_score': ':.4f'}
+        hover_data={
+            'state': True,
+            'comparative_score': ':.4f',
+            'total_tweets': True,
+            'average_engagement': ':.2f',
+            'normalized_score_biden': ':.4f',
+            'normalized_score_trump': ':.4f'
+        }
+    )
+
+    # Update hover template for better clarity
+    fig.update_traces(
+        hovertemplate=(
+            "<b>%{customdata[0]}</b><br>" +
+            "Comparative Score: %{customdata[1]:.4f}<br>" +
+            "Total Tweets: %{customdata[2]}<br>" +
+            "Average Engagement: %{customdata[3]:.2f}<br>" +
+            "Biden Normalized Score: %{customdata[4]:.4f}<br>" +
+            "Trump Normalized Score: %{customdata[5]:.4f}<extra></extra>"
+        )
     )
 
     fig.update_geos(fitbounds="locations", visible=False)
@@ -379,7 +473,11 @@ def time_series_analysis(df: pd.DataFrame) -> None:
         color='hashtag',
         color_discrete_map=color_map,
         title=f"Average Normalized Scores Over Time in {selected_state}",
-        labels={'created_date': 'Date', 'normalized_score': 'Avg Normalized Score', 'hashtag': 'Hashtag'}
+        labels={
+            'created_date': 'Date',
+            'normalized_score': 'Avg Normalized Score',
+            'hashtag': 'Hashtag'
+        }
     )
 
     fig.update_layout(
@@ -405,13 +503,17 @@ def generate_word_cloud(df: pd.DataFrame, selected_hashtags: List[str]) -> None:
     """
     st.subheader("☁️ Word Cloud by Hashtag")
     
-    for hashtag in selected_hashtag:
+    for hashtag in selected_hashtags:
         st.markdown(f"#### #{hashtag.capitalize()}")
         hashtag_data = df[df['hashtag'] == hashtag]
         text = " ".join(tweet for tweet in hashtag_data['clean_tweet'].astype(str))
         
         if text.strip():
-            wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text)
+            wordcloud = WordCloud(
+                width=800,
+                height=400,
+                background_color='white'
+            ).generate(text)
             plt.figure(figsize=(15, 7.5))
             plt.imshow(wordcloud, interpolation='bilinear')
             plt.axis('off')

@@ -59,9 +59,9 @@ class LLMAnalyzer:
         Based on the tweets:
         1. Analyze sentiment and key topics for both Biden and Trump
         2. Provide sentiment scores between -1 (most negative) and 1 (most positive)
-        3. List key topics discussed in relation to each candidate
+        3. List key topics discussed in relation to each candidate. Topics can include key figure, policy issues, events, or public opinion. Be specific on the topics.
         4. Compare the candidates and provide a confidence score for your analysis
-        5. Add any additional insights you observe
+        5. Add any additional insights you observe, such as trends, public opinion, or political implications to elections outcomes.
 
         {format_instructions}
         """
@@ -78,7 +78,7 @@ class LLMAnalyzer:
             # Convert DataFrame to a more readable format
             data_str = df[['clean_tweet', 'engagement']].to_string()
             
-            print(f"Data to be analyzed: {data_str}")
+            # print(f"Data to be analyzed: {data_str}")
             
             # Format the prompt with data
             formatted_prompt = self.prompt.format(data=data_str)
@@ -88,7 +88,7 @@ class LLMAnalyzer:
             
             # Parse the response into DailyReport structure
             parsed_response = self.parser.parse(response.content)
-            print("Parsed response:", parsed_response)
+            # print("Parsed response:", parsed_response)
             
             return parsed_response
                 
@@ -99,7 +99,7 @@ class LLMAnalyzer:
     @staticmethod
     def filter_latest_day(df: pd.DataFrame) -> pd.DataFrame:
         latest_df = df[df['created_date'] == df['created_date'].max()].copy()
-        print(f"Filtered data for latest day with {len(latest_df)} records")
+        # print(f"Filtered data for latest day with {len(latest_df)} records")
         return latest_df
 
 # Test the functionality
