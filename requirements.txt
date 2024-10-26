@@ -63,3 +63,10 @@ pyldavis >= 3.4.1
 
 # wordcloud
 wordcloud
+
+gensim
+
+plotly
+
+geopandas
+pyLDAvis
