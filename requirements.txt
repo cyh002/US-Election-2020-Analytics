@@ -70,3 +70,6 @@ plotly
 
 geopandas
 pyLDAvis
+
+jupyter_bokeh
+hvplot
