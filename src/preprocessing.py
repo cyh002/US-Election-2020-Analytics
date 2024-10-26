@@ -62,7 +62,7 @@ def cast_data_type(df: pd.DataFrame) -> pd.DataFrame:
     df['sentiment'] = df['sentiment'].astype('Int64')  # Cast sentiment to integer
     df['confidence'] = df['confidence'].astype(float)  # Cast confidence to float
     df['engagement'] = df['engagement'].astype(float)  # Cast engagement to float
-    df['normalized_scores'] = df['normalized_scores'].astype(float)  # Cast normalized_scores to float
+    df['normalized_score'] = df['normalized_score'].astype(float)  # Cast normalized_scores to float
     
     # Ensure string types for text fields
     df['source'] = df['source'].astype(str)
