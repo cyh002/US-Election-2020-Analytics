@@ -75,7 +75,7 @@ def cast_data_type(df: pd.DataFrame) -> pd.DataFrame:
     df['hashtag'] = df['hashtag'].astype(str)
     df['clean_tweet'] = df['clean_tweet'].astype(str)
     df['no_stopwords'] = df['no_stopwords'].astype(str)
-    df['created_date'] = pd.to_datetime(df['created_date'], errors='coerce')  # Cast created_date to datetime
+    df['created_date'] = pd.to_datetime(df['created_date'], errors='coerce').apply(lambda x: x.date())  # Cast created_date to date
     df['created_time'] = pd.to_datetime(df['created_time'], format='%H:%M:%S', errors='coerce').dt.time  # Cast created_time to time
  
     return df

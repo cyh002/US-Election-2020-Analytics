@@ -75,7 +75,7 @@ streamlit:
   port: 8501
   data: 'data/results/results_xlm.csv'
   geojson_url: 'https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json'
-  llm_analyzer_count: 0  #Number of clean_tweets to analyze
+  llm_analyzer_count: 100  #Number of clean_tweets to analyze
   
 
 columns_to_keep:

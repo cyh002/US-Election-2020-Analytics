@@ -44,6 +44,15 @@ class LLMAnalyzer:
 
     def _create_prompt(self):
         print("Creating prompt template...")
+
+        # Retrieve format instructions and check for issues
+        format_instructions = self.parser.get_format_instructions()
+        if format_instructions is None:
+            raise ValueError("Format instructions could not be retrieved from parser.")
+        # else:
+        #     print(f"Format Instructions: {format_instructions}")
+
+        # Define the template with placeholders for data and format instructions
         template = """
         You are an expert data analyst and political analyst.
         
@@ -65,13 +74,15 @@ class LLMAnalyzer:
 
         {format_instructions}
         """
-        
+
+        # Create the prompt template
         prompt = PromptTemplate(
             template=template,
             input_variables=["data"],
-            partial_variables={"format_instructions": self.parser.get_format_instructions()}
+            partial_variables={"format_instructions": format_instructions}
         )
         return prompt
+
 
     def generate_daily_report(self, df: pd.DataFrame) -> Optional[DailyReport]:
         try:
