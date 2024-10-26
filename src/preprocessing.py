@@ -53,16 +53,20 @@ def cast_data_type(df: pd.DataFrame) -> pd.DataFrame:
     """
     # Define the column casting
     df['tweet_id'] = df['tweet_id'].astype(str)  # Cast tweet_id to string to preserve precision
-    df['likes'] = df['likes'].astype('Int64')  # Cast likes to integer
-    df['retweet_count'] = df['retweet_count'].astype('Int64')  # Cast retweet_count to integer
+    df['likes'] = df['likes'].astype(np.int64)  # Cast likes to integer
+    df['retweet_count'] = df['retweet_count'].astype(np.int64)  # Cast retweet_count to integer
     df['user_id'] = df['user_id'].astype(str)  # Cast user_id to string to preserve precision
-    df['user_id_post_count'] = df['user_id_post_count'].astype('Int64')  # Cast user_id_post_count to integer
-    df['days_from_join_date'] = df['days_from_join_date'].astype('Int64')  # Cast days_from_join_date to integer
-    df['user_followers_count'] = df['user_followers_count'].astype('Int64')  # Cast user_followers_count to integer
-    df['sentiment'] = df['sentiment'].astype('Int64')  # Cast sentiment to integer
+    df['user_id_post_count'] = df['user_id_post_count'].astype(np.int64)  # Cast user_id_post_count to integer
+    df['days_from_join_date'] = df['days_from_join_date'].astype(np.int64)  # Cast days_from_join_date to integer
+    df['user_followers_count'] = df['user_followers_count'].astype(np.int64)  # Cast user_followers_count to integer
+    df['sentiment'] = df['sentiment'].astype(np.int64)  # Cast sentiment to integer
     df['confidence'] = df['confidence'].astype(float)  # Cast confidence to float
-    df['engagement'] = df['engagement'].astype(float)  # Cast engagement to float
-    df['normalized_score'] = df['normalized_score'].astype(float)  # Cast normalized_scores to float
+    if 'engagement' in df.columns:
+        print(f"Engagement column found in the DataFrame. Casting 'engagement' to float.")
+        df['engagement'] = df['engagement'].astype(float)  # Cast engagement to float
+    if 'normalized_score' in df.columns:
+        print(f"Normalized_score column found in the DataFrame. Casting 'normalized_score' to float.")
+        df['normalized_score'] = df['normalized_score'].astype(float)  # Cast normalized_scores to float
     
     # Ensure string types for text fields
     df['source'] = df['source'].astype(str)
@@ -73,7 +77,7 @@ def cast_data_type(df: pd.DataFrame) -> pd.DataFrame:
     df['no_stopwords'] = df['no_stopwords'].astype(str)
     df['created_date'] = pd.to_datetime(df['created_date'], errors='coerce')  # Cast created_date to datetime
     df['created_time'] = pd.to_datetime(df['created_time'], format='%H:%M:%S', errors='coerce').dt.time  # Cast created_time to time
-    
+ 
     return df
     
 
@@ -384,7 +388,7 @@ def columns_to_keep(df:pd.DataFrame, column_datatype_list: list) -> pd.DataFrame
         if dtype == 'datetime':
             df[col_name] = pd.to_datetime(df[col_name], errors='coerce')
         elif dtype == 'int':
-            df[col_name] = pd.to_numeric(df[col_name], errors='coerce').astype('Int64')
+            df[col_name] = pd.to_numeric(df[col_name], errors='coerce').astype(np.int64)
         elif dtype == 'float':
             df[col_name] = pd.to_numeric(df[col_name], errors='coerce').astype(float)
         elif dtype == 'string':

@@ -11,6 +11,7 @@ import requests
 from src.preprocessing import load_config, load_data, cast_data_type
 from src.streamlit_app.misc_app_utils import get_geojson_state_names, compare_state_names
 import os
+from src.misc_utils import engagement_score, normalization, normalize_scores
 
 # ------------------------------------------------------------
 # Streamlit Twitter Sentiment Analysis Dashboard
@@ -58,6 +59,13 @@ def load_and_cast_data(config: Dict) -> pd.DataFrame:
         pd.DataFrame: Processed DataFrame.
     """
     data = pd.read_csv(config['streamlit']['data'])
+    # cast features to appropriate data types first
+    data = cast_data_type(data) 
+    # run metrics calculation
+    data['engagement'] = engagement_score(data['likes'], data['retweet_count'], data['user_followers_count'])
+    data['normalized_score'] = normalization(data['engagement'], data['sentiment'], data['confidence'])
+    data['normalized_score'] = normalize_scores(data['normalized_score'])
+    # cast again for the new columns
     data = cast_data_type(data)
     return data
 
