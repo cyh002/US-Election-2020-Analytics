@@ -73,7 +73,7 @@ vectorizer:
 
 streamlit:
   port: 8501
-  data: 'data/results/sample_data.csv'
+  data: 'data/results/results_xlm.csv'
   geojson_url: 'https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json'
   
 
