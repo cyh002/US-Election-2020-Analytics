@@ -116,7 +116,7 @@ filtered_data = data[
     (data['hashtag'].isin(selected_hashtag)) &
     (data['days_from_join_date'] >= selected_days) &
     (data['user_followers_count'] >= min_followers)
-].dropna(subset=['normalized_scores'])
+].dropna(subset=['normalized_score'])
 
 # Compare state names between data and GeoJSON
 compare_state_names(filtered_data['state'].unique().tolist(), geojson_state_names)
@@ -124,7 +124,7 @@ compare_state_names(filtered_data['state'].unique().tolist(), geojson_state_name
 # Select columns to display to avoid serialization issues
 columns_to_display = [
     'state',
-    'normalized_scores',
+    'normalized_score',
     'days_from_join_date',
     'user_followers_count',
     'engagement',
@@ -157,13 +157,13 @@ def create_choropleth_map(df: pd.DataFrame, geojson_url: str, geojson_states: li
     df['state'] = df['state'].str.strip().str.title()
 
     # Group by state and calculate mean normalized scores
-    state_scores = df.groupby('state')['normalized_scores'].mean().reset_index()
+    state_scores = df.groupby('state')['normalized_score'].mean().reset_index()
 
     # Exclude states not present in GeoJSON
     state_scores = state_scores[state_scores['state'].isin(geojson_states)]
 
-    # Exclude states with zero normalized_scores to avoid misleading color mapping
-    state_scores = state_scores[state_scores['normalized_scores'] != 0.0]
+    # Exclude states with zero normalized_score to avoid misleading color mapping
+    state_scores = state_scores[state_scores['normalized_score'] != 0.0]
 
     # Display the state_scores DataFrame for debugging
     st.write("**State Scores DataFrame:**")
@@ -182,9 +182,9 @@ def create_choropleth_map(df: pd.DataFrame, geojson_url: str, geojson_states: li
         st.error(f"Error fetching GeoJSON data: {e}")
         return
 
-    # Determine min and max of 'normalized_scores' for symmetric color scaling
-    min_score = state_scores['normalized_scores'].min()
-    max_score = state_scores['normalized_scores'].max()
+    # Determine min and max of 'normalized_score' for symmetric color scaling
+    min_score = state_scores['normalized_score'].min()
+    max_score = state_scores['normalized_score'].max()
     abs_max = max(abs(min_score), abs(max_score))
 
     # Define custom color scale: negative red, zero white, positive green
@@ -200,13 +200,13 @@ def create_choropleth_map(df: pd.DataFrame, geojson_url: str, geojson_states: li
         geojson=us_states_geojson,
         locations='state',
         featureidkey='properties.name',
-        color='normalized_scores',
+        color='normalized_score',
         color_continuous_scale=custom_color_scale,
         color_continuous_midpoint=0,  # Center the color scale at zero
         range_color=[-abs_max, abs_max],  # Symmetric range
         scope="usa",
-        labels={'normalized_scores': 'Avg Normalized Score'},
-        hover_data={'state': True, 'normalized_scores': ':.2f'}
+        labels={'normalized_score': 'Avg Normalized Score'},
+        hover_data={'state': True, 'normalized_score': ':.2f'}
     )
 
     fig.update_geos(fitbounds="locations", visible=False)
@@ -241,7 +241,7 @@ def time_series_analysis(df: pd.DataFrame) -> None:
         return
 
     # Group by date and hashtag to calculate mean normalized scores
-    time_series = state_data.groupby(['created_date', 'hashtag'])['normalized_scores'].mean().reset_index()
+    time_series = state_data.groupby(['created_date', 'hashtag'])['normalized_score'].mean().reset_index()
 
     # Define color mapping for hashtags
     color_map = {
@@ -254,11 +254,11 @@ def time_series_analysis(df: pd.DataFrame) -> None:
     fig = px.line(
         time_series,
         x='created_date',
-        y='normalized_scores',
+        y='normalized_score',
         color='hashtag',
         color_discrete_map=color_map,
         title=f"Average Normalized Scores Over Time in {selected_state}",
-        labels={'created_date': 'Date', 'normalized_scores': 'Avg Normalized Score', 'hashtag': 'Hashtag'}
+        labels={'created_date': 'Date', 'normalized_score': 'Avg Normalized Score', 'hashtag': 'Hashtag'}
     )
 
     fig.update_layout(
@@ -320,10 +320,10 @@ def sentiment_distribution(df: pd.DataFrame) -> None:
 
     fig = px.histogram(
         df,
-        x='normalized_scores',
+        x='normalized_score',
         nbins=50,
         title="Distribution of Normalized Sentiment Scores",
-        labels={'normalized_scores': 'Normalized Sentiment Score'},
+        labels={'normalized_score': 'Normalized Sentiment Score'},
         color_discrete_sequence=['#636EFA']
     )
 
@@ -351,7 +351,7 @@ def user_influence(df: pd.DataFrame) -> None:
     fig = px.scatter(
         df,
         x='user_followers_count',
-        y='normalized_scores',
+        y='normalized_score',
         size='engagement',
         color='hashtag',
         color_discrete_map={
@@ -362,7 +362,7 @@ def user_influence(df: pd.DataFrame) -> None:
         title="User Followers vs. Normalized Sentiment Scores",
         labels={
             'user_followers_count': 'User Followers Count',
-            'normalized_scores': 'Normalized Sentiment Score',
+            'normalized_score': 'Normalized Sentiment Score',
             'engagement': 'Engagement'
         },
         log_x=True,
