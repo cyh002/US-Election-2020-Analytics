@@ -18,6 +18,7 @@ class StreamlitFilters:
         self.min_followers: int = 10
         self.selected_date_range: Tuple[date, date] = (date.today(), date.today())
         self.filtered_data: pd.DataFrame = pd.DataFrame()
+        self.disable_filters: List[str] = []
 
     def sidebar_filters(self) -> None:
         """
@@ -64,21 +65,24 @@ class StreamlitFilters:
             )
 
         # Date Range Filter
-        date_expander = st.sidebar.expander("🕒 Select Date Range", expanded=True)
-        with date_expander:
-            min_date = self.data['created_date'].min()
-            max_date = self.data['created_date'].max()
-            self.selected_date_range = st.date_input(
-                "Select Date Range:",
-                value=(min_date, max_date),
-                min_value=min_date,
-                max_value=max_date
-            )
-            # Ensure selected_date_range is a valid tuple of two dates
-            if isinstance(self.selected_date_range, date):
-                self.selected_date_range = (self.selected_date_range, self.selected_date_range)
-            elif len(self.selected_date_range) != 2:
-                st.error("Please select a start and end date.")
+        if 'date_range' not in self.disable_filters:
+            date_expander = st.sidebar.expander("🕒 Select Date Range", expanded=True)
+            with date_expander:
+                min_date = self.data['created_date'].min()
+                max_date = self.data['created_date'].max()
+                self.selected_date_range = st.date_input(
+                    "Select Date Range:",
+                    value=(min_date, max_date),
+                    min_value=min_date,
+                    max_value=max_date
+                )
+                # Ensure selected_date_range is a valid tuple of two dates
+                if isinstance(self.selected_date_range, date):
+                    self.selected_date_range = (self.selected_date_range, self.selected_date_range)
+                elif len(self.selected_date_range) != 2:
+                    st.error("Please select a start and end date.")
+        else:
+            self.selected_date_range = (self.data['created_date'].min(), self.data['created_date'].max())
 
     def apply_filters(self) -> None:
         """

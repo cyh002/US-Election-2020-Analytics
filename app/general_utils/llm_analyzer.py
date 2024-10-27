@@ -11,7 +11,8 @@ class CandidateSentiment(BaseModel):
     candidate: str = Field(description="Name of the political candidate, e.g., Biden, Trump")
     sentiment: str = Field(description="Sentiment towards the candidate (positive/negative/neutral)")
     score: float = Field(description="Sentiment score between -1 and 1")
-    key_topics: List[str] = Field(description="List of key topics associated with the candidate")
+    key_topics: List[str] = Field(description="List of maximum 30 key topics associated with the candidate.")
+    key_figures: List[str] = Field(description="List of key figures associated with the candidate.")
 
 class OverallAnalysis(BaseModel):
     comparison: str = Field(description="Comparative analysis between candidates")
@@ -54,7 +55,7 @@ class LLMAnalyzer:
 
         # Define the template with placeholders for data and format instructions
         template = """
-        You are an expert data analyst and political analyst.
+        You are an expert data analyst, journalist and political analyst.
         
         Analyze the following tweet data and generate a structured report.
         The data consists of cleaned tweets and their engagement metrics for the latest day.
@@ -66,11 +67,11 @@ class LLMAnalyzer:
         {data}
         
         Based on the tweets:
-        1. Analyze sentiment and key topics for both Biden and Trump
+        1. Analyze sentiment and maximum of 30 key topics for both Biden and Trump. Also, list key figures associated / mentioned with each candidate, if any, else leave None.
         2. Provide sentiment scores between -1 (most negative) and 1 (most positive)
-        3. List key topics discussed in relation to each candidate. Topics can include key figure, policy issues, events, or public opinion. Be specific on the topics.
-        4. Compare the candidates and provide a confidence score for your analysis
-        5. Add any additional insights you observe, such as trends, public opinion, or political implications to elections outcomes.
+        3. List key topics discussed in relation to each candidate. Topics can include policy issues, events, or public opinion. Be specific on the topics.
+        4. Compare the candidates and provide a confidence score for your analysis. Be detailed in your comparison, around 100-200 words.
+        5. Review point 1 to 4, then add any additional insights you observe, such as trends, public opinion, background information based on your knowledge or political implications to elections outcomes. Be detailed in your insights, around 100-200 words.
 
         {format_instructions}
         """

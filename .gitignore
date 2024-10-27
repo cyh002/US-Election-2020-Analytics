@@ -9,3 +9,4 @@ tests/__pycache__/*
 src/streamlit_app/__pycache__/*
 .env
 app/general_utils/__pycache__/*
+app/__pycache__/*
