@@ -1,8 +1,6 @@
 .aider*
 src/__pycache__/*
 
-#Ignore all the data inside the data file
-data/*
 
 test.ipynb
 tests/__pycache__/*
