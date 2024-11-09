@@ -52,6 +52,39 @@ class TwitterSentimentApp:
         
         Use the sidebar to navigate through different sections of the dashboard.
         """)
+        
+        st.markdown("""
+        📚 [View Full Glossary and Metrics](/Glossary)
+        """)
+
+        
+        # Authors section with columns and custom styling
+        st.markdown("## Meet the Team")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown("""
+            ### Christopher Chi Yang Hoo
+            [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/christopher-chi-yang-hoo-570698bb/)
+            Data Scientist & ML Engineer
+            """)
+        
+        with col2:
+            st.markdown("""
+            ### Victoria Kwong Jia Ying
+            [![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:kwong.victoriaa@gmail.com)
+            Data Scientist & ML Engineer
+            """)
+        
+        with col3:
+            st.markdown("""
+            ### Anthony Kwa
+            [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/anthony-kwa/)
+            Data Scientist & ML Engineer
+            """)
+
+
 
 if __name__ == "__main__":
     app = TwitterSentimentApp()
