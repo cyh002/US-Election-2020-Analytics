@@ -3,9 +3,8 @@
 # python -m streamlit run app/streamlit_app.py
 
 import streamlit as st
-from app.general_utils.data_loader import DataLoader
-from app.general_utils.app_state import init_state
-
+from general_utils.data_loader import DataLoader
+from general_utils.app_state import init_state
 
 class TwitterSentimentApp:
     def __init__(self):
