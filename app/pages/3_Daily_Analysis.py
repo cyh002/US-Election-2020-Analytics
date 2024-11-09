@@ -3,13 +3,15 @@ from app.general_utils.app_state import init_state
 import pandas as pd
 from app.general_utils.streamlit_filters import StreamlitFilters
 
+
+
 class DailyAnalysisPage:
     def __init__(self):
         init_state()
         self.data = st.session_state['data']
         self.data_loader = st.session_state['data_loader']
         self.llm_analyzer = st.session_state['llm_analyzer']
-        self.llm_analyzer_count = 0
+        self.llm_analyzer_count = st.session_state['config']['streamlit']['llm_analyzer_count']
         self.selected_hashtag = []
         self.filtered_data = pd.DataFrame()
         self.llm_analyzer.model = self.data_loader.openai_model
@@ -21,9 +23,9 @@ class DailyAnalysisPage:
         self.llm_analyzer_count = st.sidebar.number_input(
             "Number of Tweets to Analyze",
             min_value=0,
-            max_value=200,
+            max_value=self.llm_analyzer_count,
             value=self.llm_analyzer_count,
-            help="Number of tweets to analyze for sentiment analysis per day. Max : 200"
+            help="Number of tweets to analyze for sentiment analysis per day. Max : " + str(self.llm_analyzer_count)
         )
         
         # update self.filters that date range is not required

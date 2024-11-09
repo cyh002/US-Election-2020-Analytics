@@ -20,3 +20,7 @@ def init_state():
     if 'geojson_state_names' not in st.session_state:
         geojson_url = st.session_state['data_loader'].geojson_url
         st.session_state['geojson_state_names'] = get_geojson_state_names(geojson_url)
+        
+    # load config
+    if 'config' not in st.session_state:
+        st.session_state['config'] = st.session_state['data_loader'].config
