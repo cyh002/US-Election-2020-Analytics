@@ -35,11 +35,11 @@ class TwitterSentimentApp:
 
         **Features:**
         - **Daily Analysis:** Perform in-depth analysis on the day's data, including anomaly detection, key topics, and key trends.
+        - **User Analysis:** Analyze the relationship between user followers and sentiment.
         - **Choropleth Map:** Visualize comparative sentiment scores between hashtags by state.
+        - **Sentiment Distribution:** Understand the distribution of sentiment scores by hashtag.
         - **Time Series Analysis:** Track sentiment trends over time for selected hashtags.
         - **Word Clouds:** Explore common words used in tweets for each hashtag.
-        - **Sentiment Distribution:** Understand the distribution of sentiment scores by hashtag.
-        - **User Influence:** Analyze the relationship between user followers and sentiment.
         
         Use the sidebar to navigate through different sections of the dashboard.
         """)
