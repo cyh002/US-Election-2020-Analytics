@@ -70,13 +70,12 @@ class UserAnalysisPage:
             'user_id_post_count': 'first',   
             'user_followers_count': 'first',  
             'hashtag': lambda x: list(x.unique()),  
-            'tweet_id': 'count'  
+            'tweet_id': 'count',
+            'clean_tweet': lambda x: ' | '.join(x.head(3))  # Join first 3 tweets with separator
         }).reset_index()
         
-        # Calculate posts per day
+        # Calculate posts per day and suspicious score
         user_metrics['posts_per_day'] = user_metrics['user_id_post_count'] / user_metrics['days_from_join_date']
-        
-        # Define suspicious patterns
         user_metrics['suspicious_score'] = 0
         
         post_freq_threshold = user_metrics['posts_per_day'].quantile(0.95)
@@ -102,12 +101,17 @@ class UserAnalysisPage:
                 'suspicious_score': 'Suspicious Score',
                 'user_followers_count': 'Follower Count'
             },
-            hover_data=['user_followers_count', 'posts_per_day']
+            hover_data={
+                'user_id': True,
+                'user_followers_count': True,
+                'posts_per_day': ':.2f',
+                'clean_tweet': True
+            }
         )
         
         fig1.update_layout(
             margin={"r": 0, "t": 30, "l": 0, "b": 0},
-            height=400  # Slightly reduced height since we're stacking
+            height=400
         )
         st.plotly_chart(fig1, use_container_width=True)
 
@@ -127,16 +131,34 @@ class UserAnalysisPage:
                 'suspicious_score': 'Suspicious Score',
                 'tweet_id': 'Tweets in Dataset'
             },
-            log_x=True,
-            log_y=True,
-            hover_data=['days_from_join_date']
+            hover_data={
+                'user_id': True,
+                'days_from_join_date': True,
+                'clean_tweet': True
+            }
         )
         
         fig2.update_layout(
             margin={"r": 0, "t": 30, "l": 0, "b": 0},
-            height=400  # Slightly reduced height since we're stacking
+            height=400
         )
         st.plotly_chart(fig2, use_container_width=True)
+
+        # Add table of suspicious accounts
+        st.subheader("Most Suspicious Accounts")
+        suspicious_accounts = user_metrics[user_metrics['suspicious_score'] >= 2].sort_values(
+            by='suspicious_score', 
+            ascending=False
+        ).head(10)
+
+        for idx, row in suspicious_accounts.iterrows():
+            with st.expander(f"User ID: {row['user_id']} (Suspicious Score: {row['suspicious_score']})"):
+                st.write(f"**Account Age:** {row['days_from_join_date']} days")
+                st.write(f"**Followers:** {row['user_followers_count']:,}")
+                st.write(f"**Posts per Day:** {row['posts_per_day']:.2f}")
+                st.write("**Sample Tweets:**")
+                for tweet in row['clean_tweet'].split(' | '):
+                    st.write(f"- {tweet}")
 
         # Display summary statistics
         st.subheader("Suspicious Account Summary")
