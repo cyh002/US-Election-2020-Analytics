@@ -23,25 +23,6 @@ An interactive dashboard analyzing Twitter sentiment during the 2020 US Presiden
 - **Data Validation**: Pydantic
 - **Testing**: Python unittest
 
-## 🗂️ Project Structure
-
-```
-├── app/                      # Main application directory
-│   ├── general_utils/       # Utility functions
-│   ├── pages/              # Streamlit pages
-│   └── streamlit_app.py    # Main app file
-├── conf/                    # Configuration files
-├── data/                    # Data directory
-│   ├── cleaned/            # Processed data
-│   ├── raw/                # Raw tweet data
-│   └── results/            # Analysis results
-├── src/                    # Source code
-│   ├── preprocessing.py    # Data preprocessing
-│   ├── topic_modeling.py   # Topic analysis
-│   └── train_model.py      # Model training
-└── tests/                  # Test files
-```
-
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -64,7 +45,7 @@ pip install -r requirements.txt
 
 3. Set up environment variables
 ```bash
-export DEEPSEEK_API_KEY=your_api_key
+export openai_api_key=your_api_key
 ```
 
 4. Run the application
@@ -72,14 +53,65 @@ export DEEPSEEK_API_KEY=your_api_key
 python -m streamlit run app/streamlit_app.py
 ```
 
-## 📚 Documentation
+## ⚙️ Configuration
 
-For detailed information about metrics and calculations, visit the Glossary page in the application.
+The project uses YAML configuration files (`conf/config.yaml`) for managing:
+
+### Data Paths
+```yaml
+data:
+  trump_path: 'data/raw/hashtag_donaldtrump.csv'
+  biden_path: 'data/raw/hashtag_joebiden.csv'
+  output_path: 'data/cleaned/english_tweets.csv'
+  results_path: 'data/results/'
+```
+
+### Processing Parameters
+```yaml
+vectorizer:
+  count:
+    type: "count"
+    max_features: 1000
+    max_df: 0.5
+```
+
+### Application Settings
+```yaml
+streamlit:
+  port: 8501
+  data: 'data/results/results_xlm.csv'
+  llm_analyzer_count: 100
+```
+
+### LLM Configuration
+```yaml
+openai:
+  base_url: 'https://api.deepseek.com'
+  model: 'deepseek-chat'
+```
+
+## 🗂️ Project Structure
+
+```
+├── app/                      # Main application directory
+│   ├── general_utils/       # Utility functions
+│   ├── pages/              # Streamlit pages
+│   └── streamlit_app.py    # Main app file
+├── conf/                    # Configuration files
+├── data/                    # Data directory
+│   ├── cleaned/            # Processed data
+│   ├── raw/                # Raw tweet data
+│   └── results/            # Analysis results
+├── src/                    # Source code
+│   ├── preprocessing.py    # Data preprocessing
+│   ├── topic_modeling.py   # Topic analysis
+│   └── train_model.py      # Model training
+└── tests/                  # Test files
+```
 
 ## 👥 Team Members
 
 <div align="center">
-
 <table>
 <tr>
     <td align="center">
@@ -90,7 +122,6 @@ For detailed information about metrics and calculations, visit the Glossary page
         </a>
         <br />
         Data Scientist & ML Engineer
-        <br />
     </td>
     <td align="center">
         <a href="mailto:kwong.victoriaa@gmail.com">
@@ -100,7 +131,6 @@ For detailed information about metrics and calculations, visit the Glossary page
         </a>
         <br />
         Data Scientist & ML Engineer
-        <br />
     </td>
     <td align="center">
         <a href="https://www.linkedin.com/in/anthony-kwa/">
@@ -110,17 +140,20 @@ For detailed information about metrics and calculations, visit the Glossary page
         </a>
         <br />
         Data Scientist & ML Engineer
-        <br />
     </td>
 </tr>
 </table>
-
 </div>
 
 ### 🎓 Project Context
 This project was developed as part of the Data and Visual Analytics course at Georgia Tech. Our team collaborated to create a comprehensive sentiment analysis dashboard for analyzing Twitter discussions during the 2020 US Presidential Election.
 
 ### 👨‍💻 Role Distribution
-- **Christopher Chi Yang Hoo**: Led backend development, implemented LLM integration.
+- **Christopher Chi Yang Hoo**: Led backend development, implemented LLM integration
 - **Victoria Kwong Jia Ying**: Managed data preprocessing, statistical analysis, reporting
-- **Anthony Kwa**: Managed data preprocessing, statistical analysis, reporting.
+- **Anthony Kwa**: Managed data preprocessing, statistical analysis, reporting
+
+## 📚 Documentation
+
+For detailed information about metrics and calculations, visit the Glossary page in the application.
+
