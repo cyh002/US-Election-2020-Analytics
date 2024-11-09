@@ -3,7 +3,15 @@
 # python -m streamlit run app/streamlit_app.py
 
 import streamlit as st
-from app.general_utils.data_loader import DataLoader
+from pathlib import Path
+import subprocess
+import sys
+import os
+project_root = str(Path(__file__).parent.parent)
+if project_root not in sys.path:
+    sys.path.append(project_root)
+    
+    from app.general_utils.data_loader import DataLoader
 from app.general_utils.app_state import init_state
 
 class TwitterSentimentApp:
@@ -45,4 +53,6 @@ class TwitterSentimentApp:
 
 if __name__ == "__main__":
     app = TwitterSentimentApp()
+    
+    
     
