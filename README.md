@@ -1,117 +1,126 @@
-# Election Tweet Sentiment Analysis Tool
+# Twitter Sentiment Analysis: 2020 US Election
 
-This project aims to develop a cutting-edge tool that accurately measures public sentiment expressed in tweets related to the presidential election. It utilizes advanced Natural Language Processing (NLP) techniques, incorporating modern slang, sarcasm detection, emoji analysis, and real-time sentiment tracking.
+An interactive dashboard analyzing Twitter sentiment during the 2020 US Presidential Election, focusing on tweets related to Donald Trump and Joe Biden.
 
-## Key Features
+## 📊 Features
 
-- **Real-Time Sentiment Analysis**: Analyze tweets related to the presidential election in real-time.
-- **Advanced NLP**: Utilize the DistilBERT model for deeper understanding of tweet language, including slang, sarcasm, and emojis.
-- **Visualizations**: Graphical representations of public sentiment using `Streamlit` and `Graphviz`.
-- **FastAPI Batch Inference**: Efficient sentiment analysis on batches of tweets using `FastAPI`.
-- **Interactive Dashboards**: Create interactive data visualizations to explore election-related public sentiment.
+- **Data Overview**: Explore the raw data and its structure
+- **User Analysis**: Analyze user influence and detect suspicious accounts
+- **Daily Analysis**: AI-powered daily sentiment summaries using DeepSeek-Chat
+- **Choropleth Map**: Geographic sentiment distribution across US states
+- **Sentiment Distribution**: Compare sentiment patterns between candidates
+- **Time Series Analysis**: Track sentiment trends over time
+- **Word Cloud**: Visualize frequently discussed topics
 
-## Tech Stack
+## 🛠️ Technologies
 
-- **Natural Language Processing (NLP)**: `Hugging Face Transformers` (DistilBERT)
-- **Web Scraping & Tweet Collection**: `Tweepy`
-- **Real-Time Dashboards**: `Streamlit`
-- **Back-End API**: `FastAPI`
-- **Visualization**: `Graphviz`, `Matplotlib`, `Seaborn`, `Plotly`
-- **Data Handling**: `Pandas`, `NumPy`
-- **Machine Learning**: `PyTorch`
+- **Frontend**: Streamlit
+- **Data Processing**: Pandas, NumPy
+- **Visualization**: Plotly
+- **NLP & Sentiment Analysis**: 
+  - RoBERTa (CardiffNLP/twitter-xlm-roberta-base-sentiment)
+  - DeepSeek-Chat LLM
+- **Data Validation**: Pydantic
+- **Testing**: Python unittest
 
-## Project Structure
+## 🗂️ Project Structure
 
-```plaintext
-├── conf/                # Configuration files (e.g., API keys, environment settings)
-├── data/                # Data collection and preprocessing
-├── src/                 # Source code for training and analysis
-│   ├── dataloader.py    # Script to handle data loading
-│   ├── graphrag.py      # Visualization script using graphing tools
-│   ├── streamlit.py     # Streamlit dashboard app
-│   └── train_model.py   # Model training script
-├── .gitignore           # Git ignore file to exclude unnecessary files
-├── README.md            # Project documentation
-├── requirements.txt     # Dependencies for the project
-└── US-Election-2020-Analytics.ipynb  # Jupyter notebook for election analytics
+```
+├── app/                      # Main application directory
+│   ├── general_utils/       # Utility functions
+│   ├── pages/              # Streamlit pages
+│   └── streamlit_app.py    # Main app file
+├── conf/                    # Configuration files
+├── data/                    # Data directory
+│   ├── cleaned/            # Processed data
+│   ├── raw/                # Raw tweet data
+│   └── results/            # Analysis results
+├── src/                    # Source code
+│   ├── preprocessing.py    # Data preprocessing
+│   ├── topic_modeling.py   # Topic analysis
+│   └── train_model.py      # Model training
+└── tests/                  # Test files
 ```
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
-Make sure you have Python 3.8 or above installed.
+- Python 3.8+
+- Virtual environment (recommended)
 
 ### Installation
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/election-tweet-sentiment-analysis.git
-   ```
-   
-2. Navigate into the project directory:
-   ```bash
-   cd election-tweet-sentiment-analysis
-   ```
-
-3. Install the required dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-### Usage
-
-1. **Collect Tweets**: Use the `Tweepy` integration to collect real-time tweets related to the election.
-   
-2. **Run Streamlit App**: Launch the Streamlit app to explore real-time sentiment analysis:
-   ```bash
-   streamlit run src/streamlit.py
-   ```
-
-3. **Serve API for Batch Inference**: Run the FastAPI server for batch sentiment inference:
-   ```bash
-   uvicorn src.inference:app --reload
-   ```
-
-4. **Generate Visualizations**: Use `graphrag.py` to create sentiment graphs:
-   ```bash
-   python src/graphrag.py
-   ```
-
-### Model Training
-
-To train the sentiment analysis model, use the provided training scripts:
-
+1. Clone the repository
 ```bash
-python src/train_model.py --data data/election_tweets.csv
+git clone https://github.com/yourusername/twitter-sentiment-analysis.git
+cd twitter-sentiment-analysis
 ```
 
-### Visualization
-
-To generate visualizations of sentiment trends, you can use `Streamlit` or `graphrag.py`. Here's how to visualize sentiment trends over time:
-
+2. Install dependencies
 ```bash
-streamlit run src/visualize.py
+pip install -r requirements.txt
 ```
 
-### Inference
-
-For batch inference on collected tweets, use the FastAPI batch processing system:
-
+3. Set up environment variables
 ```bash
-curl -X POST "http://127.0.0.1:8000/inference" -H "Content-Type: application/json" -d '{"tweets": ["I love this candidate!", "I hate this policy."]}'
+export DEEPSEEK_API_KEY=your_api_key
 ```
 
-## Testing
-
-To run the tests, use `pytest`:
-
+4. Run the application
 ```bash
-pytest
+python -m streamlit run app/streamlit_app.py
 ```
 
-## Future Enhancements
+## 📚 Documentation
 
-- **Improved Sarcasm Detection**: Incorporating more complex models for sarcasm and irony detection.
-- **Broader Language Support**: Expand to support multiple languages and dialects.
-- **Advanced Contextual Analysis**: Analyze sentiment across entire conversation threads for better context.
+For detailed information about metrics and calculations, visit the Glossary page in the application.
+
+## 👥 Team Members
+
+<div align="center">
+
+<table>
+<tr>
+    <td align="center">
+        <a href="https://www.linkedin.com/in/christopher-chi-yang-hoo-570698bb/">
+            <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="Christopher LinkedIn"/>
+            <br />
+            <b>Christopher Chi Yang Hoo</b>
+        </a>
+        <br />
+        Data Scientist & ML Engineer
+        <br />
+    </td>
+    <td align="center">
+        <a href="mailto:kwong.victoriaa@gmail.com">
+            <img src="https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Victoria Email"/>
+            <br />
+            <b>Victoria Kwong Jia Ying</b>
+        </a>
+        <br />
+        Data Scientist & ML Engineer
+        <br />
+    </td>
+    <td align="center">
+        <a href="https://www.linkedin.com/in/anthony-kwa/">
+            <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="Anthony LinkedIn"/>
+            <br />
+            <b>Anthony Kwa</b>
+        </a>
+        <br />
+        Data Scientist & ML Engineer
+        <br />
+    </td>
+</tr>
+</table>
+
+</div>
+
+### 🎓 Project Context
+This project was developed as part of the Data and Visual Analytics course at Georgia Tech. Our team collaborated to create a comprehensive sentiment analysis dashboard for analyzing Twitter discussions during the 2020 US Presidential Election.
+
+### 👨‍💻 Role Distribution
+- **Christopher Chi Yang Hoo**: Led backend development, implemented LLM integration.
+- **Victoria Kwong Jia Ying**: Managed data preprocessing, statistical analysis, reporting
+- **Anthony Kwa**: Managed data preprocessing, statistical analysis, reporting.
