@@ -1,9 +1,11 @@
 # streamlit_app.py
+# How to run: 
+# python -m streamlit run app/streamlit_app.py
 
 import streamlit as st
-from general_utils.data_loader import DataLoader
-from general_utils.app_state import init_state
-import os
+from app.general_utils.data_loader import DataLoader
+from app.general_utils.app_state import init_state
+
 
 class TwitterSentimentApp:
     def __init__(self):
@@ -32,15 +34,16 @@ class TwitterSentimentApp:
         Welcome to the Twitter Sentiment Analysis Dashboard! This application visualizes the sentiment of tweets across different US states and hashtags. Explore the data through interactive maps, time series plots, word clouds, and more.
 
         **Features:**
+        - **Daily Analysis:** Perform in-depth analysis on the day's data, including anomaly detection, key topics, and key trends.
         - **Choropleth Map:** Visualize comparative sentiment scores between hashtags by state.
         - **Time Series Analysis:** Track sentiment trends over time for selected hashtags.
         - **Word Clouds:** Explore common words used in tweets for each hashtag.
         - **Sentiment Distribution:** Understand the distribution of sentiment scores by hashtag.
         - **User Influence:** Analyze the relationship between user followers and sentiment.
-        - **Latest Day Analysis:** Perform in-depth analysis on the latest day's data, including anomaly detection, key topics, and key trends.
-
+        
         Use the sidebar to navigate through different sections of the dashboard.
         """)
 
 if __name__ == "__main__":
     app = TwitterSentimentApp()
+    
