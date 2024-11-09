@@ -24,7 +24,7 @@ class DailyAnalysisPage:
             "Number of Tweets to Analyze",
             min_value=0,
             max_value=self.llm_analyzer_count,
-            value=self.llm_analyzer_count,
+            value=0,
             help="Number of tweets to analyze for sentiment analysis per day. Max : " + str(self.llm_analyzer_count)
         )
         
