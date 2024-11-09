@@ -1,4 +1,3 @@
-# pages/6_User_Influence.py
 import streamlit as st
 from general_utils.app_state import init_state
 import pandas as pd

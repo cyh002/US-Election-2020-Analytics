@@ -45,31 +45,31 @@ class DailyAnalysisPage:
 
         if not self.filtered_data.empty:
             # Filter data for the latest day
-            latest_day_data = self.llm_analyzer.filter_latest_day(self.filtered_data)
+            selected_day_data = self.llm_analyzer.filter_latest_day(self.filtered_data)
             columns_to_analyze = ['clean_tweet', 'engagement']
-            latest_day_data = latest_day_data[columns_to_analyze]
-            latest_date = self.filtered_data['created_date'].max()
+            selected_day_data = selected_day_data[columns_to_analyze]
+            selected_date = self.filtered_data['created_date'].max()
 
             # Limiting tweets to prevent token overflow
-            latest_day_data = latest_day_data.sort_values(by='engagement', ascending=False)
-            latest_day_data = latest_day_data.head(self.llm_analyzer_count)
+            selected_day_data = selected_day_data.sort_values(by='engagement', ascending=False)
+            selected_day_data = selected_day_data.head(self.llm_analyzer_count)
             
             # Show the table
             # reindex
-            latest_day_data = latest_day_data.reset_index(drop=True)
+            selected_day_data = selected_day_data.reset_index(drop=True)
             
 
-            if latest_day_data.empty:
+            if selected_day_data.empty:
                 st.warning("No data available for the day.")
             else:
                 with st.spinner("Performing analysis..."):
                     # Generate analysis report using LLMAnalyzer
-                    analysis_report = self.llm_analyzer.generate_daily_report(latest_day_data)
+                    analysis_report = self.llm_analyzer.generate_daily_report(selected_day_data)
 
                 if analysis_report:
                     # Display the structured report
-                    st.markdown(f"### 📄 Report for {latest_date}")
-                    st.write(latest_day_data)
+                    st.markdown(f"### 📄 Report for {selected_date}")
+                    st.write(selected_day_data)
 
                     # Formatting the output for readability
                     st.subheader("Sentiment Analysis")
