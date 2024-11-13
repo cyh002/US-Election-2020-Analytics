@@ -12,3 +12,6 @@ proposal/
 
 #Ignore the tests file
 tests/
+
+#Ignore unnecessary files
+EDA.ipynb

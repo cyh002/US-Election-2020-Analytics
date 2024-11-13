@@ -58,5 +58,10 @@ ipykernel
 #LDA Model
 tmtoolkit >= 0.12.0
 gensim >= 4.3.3
-scipy >=1.13.1
+scipy >= 1.13.1
 pyldavis >= 3.4.1
+
+#RoBERTa Model and Hugging Face
+transformers >= 4.46.2
+huggingface_hub >= 0.26.2
+sentencepiece >= 0.2.0

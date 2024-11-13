@@ -194,11 +194,11 @@ def remove_stopwords(tweet: str) -> list:
     stop_words = set(stopwords.words('english'))
     lemmatizer = WordNetLemmatizer()
     tokenized = [lemmatizer.lemmatize(token) 
-                 for token in tokenized 
-                 if (token.isalpha() or token.startswith('#')) 
-                 and len(token) > 3 
-                 and token not in stop_words 
-                 and not token.startswith('@')]
+                for token in tokenized 
+                if (token.isalpha() or token.startswith('#')) 
+                and len(token) > 3 
+                and token not in stop_words 
+                and not token.startswith('@')]
     return tokenized
 
 def remove_duplicates_retweets(data: pd.DataFrame, col_name: str) -> pd.DataFrame:
@@ -256,7 +256,7 @@ def created_date_and_time(df:pd.DataFrame, col_name:str) -> pd.DataFrame:
 
     Returns:
         pd.DataFrame: A DataFrame with two new columns, 'created_date' and 'created_time', 
-                      representing the extracted date and time respectively.
+                    representing the extracted date and time respectively.
     """
     #Change the column to datetime
     df[col_name] = pd.to_datetime(df[col_name], format='%Y-%m-%d %H:%M:%S')
@@ -277,7 +277,7 @@ def days_from_joined_date(df:pd.DataFrame, user_join_column:str, created_column:
 
     Returns:
         pd.DataFrame: A DataFrame with a new column 'days_from_join_date' 
-                      indicating the number of days between the two dates.
+                    indicating the number of days between the two dates.
 
     Raises:
         AssertionError: If any 'created_column' value is earlier than 'user_join_column'.
@@ -305,7 +305,7 @@ def userid_post_count(df:pd.DataFrame, col_name:str) -> pd.DataFrame:
 
     Returns:
         pd.DataFrame: A DataFrame with a new column 'user_id_post_count' 
-                      showing the count of posts for each user.
+                    showing the count of posts for each user.
     """
 
     #Get the value count for each user
@@ -328,15 +328,15 @@ def columns_to_keep(df:pd.DataFrame, column_datatype_list: list) -> pd.DataFrame
 
     Returns:
         pd.DataFrame: A DataFrame containing only the required columns with 
-                      values converted to the specified data types. 
-                      Missing columns are filled with None.
+                    values converted to the specified data types. 
+                    Missing columns are filled with None.
 
     Raises:
         ValueError: If a data type in the configuration is not supported.
     """
     #Get the required columns
     required_columns = [col['name'] for col in column_datatype_list]
-     # Create a dictionary of {column_name: dtype} from the config
+    # Create a dictionary of {column_name: dtype} from the config
     dtype_mapping = {col['name']: col['dtype'] for col in column_datatype_list}
 
     # Ensure the DataFrame has all necessary columns, or add them with default values

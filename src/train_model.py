@@ -354,7 +354,7 @@ def document_topic_matrix(model: object, dtm: csr_matrix) -> np.array:
     doc_topic_matrix = model.fit_transform(dtm)
     return doc_topic_matrix
 
-def umap_visualization(doc_topic_matrix: np.arary, n_components:int=2, random_state:int=42):
+def umap_visualization(doc_topic_matrix: np.array, n_components:int=2, random_state:int=42):
     '''
     Visualize documents in a lower-dimensional space using UMAP and highlight dominant topics.
 
