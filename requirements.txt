@@ -20,9 +20,10 @@ streamlit_tags
 geopandas
 
 # API Clients & Utils
-openai
-langchain
-langchain_openai
+openai==1.52.2
+langchain==0.3.4
+langchain_openai==0.2.3
+langchain-community==0.3.3
 
 # Development Tools
 pytest>=6.2.0
@@ -31,4 +32,4 @@ PyYAML>=5.4.1
 prompt-toolkit
 ipykernel
 nltk >= 3.9.1
-pydantic
+pydantic==2.9.2
