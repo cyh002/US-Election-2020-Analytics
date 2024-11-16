@@ -1,4 +1,16 @@
-# docker build : docker build -f docker/dockerfile . -t streamlit-app:latest
+# https://devcenter.heroku.com/articles/container-registry-and-runtime
+# docker build : docker build -f docker/DockerFile . -t streamlit-app:latest
+# docker ps to get the container id
+# docker tag <image> registry.heroku.com/<app>/<process-type>
+
+# <app> : us-election-analytics-2020
+# <process-type> : web
+# <image> : streamlit-app:latest
+
+# to run : sudo docker run -d -p 8501:8501 streamlit-app:latest
+
+# to push : sudo docker push registry.heroku.com/us-election-analytics-2020/web
+# to release : heroku container:release web -a us-election-analytics-2020
 FROM python:3.12.7-slim
 
 # Set working directory
@@ -39,11 +51,16 @@ COPY app/ ./app/
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-# Port exposure (adjust as needed)
-EXPOSE 8501
+ARG openai_api_key
+ENV openai_api_key=$openai_api_key
 
 # set home directory
 WORKDIR /app
 
+HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
+
+RUN useradd -m streamlit
+USER streamlit
+
 # Command to run the application
-CMD ["streamlit", "run", "app/streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+ENTRYPOINT ["streamlit", "run", "app/streamlit_app.py", "--server.port=$PORT", "--server.address=0.0.0.0"]
