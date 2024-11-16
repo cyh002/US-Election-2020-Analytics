@@ -2,7 +2,7 @@ import streamlit as st
 from general_utils.app_state import init_state
 import pandas as pd
 import plotly.express as px
-from app.general_utils.streamlit_filters import StreamlitFilters
+from general_utils.streamlit_filters import StreamlitFilters
 class UserAnalysisPage:
     def __init__(self):
         

@@ -1,8 +1,8 @@
 # app_state.py
 import streamlit as st
-from app.general_utils.data_loader import DataLoader
-from app.general_utils.llm_analyzer import LLMAnalyzer
-from app.general_utils.misc_app_utils import get_geojson_state_names
+from general_utils.data_loader import DataLoader
+from general_utils.llm_analyzer import LLMAnalyzer
+from general_utils.misc_app_utils import get_geojson_state_names
 
 def init_state():
     if 'data_loader' not in st.session_state:

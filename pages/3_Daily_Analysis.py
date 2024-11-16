@@ -1,7 +1,7 @@
 import streamlit as st
-from app.general_utils.app_state import init_state
+from general_utils.app_state import init_state
 import pandas as pd
-from app.general_utils.streamlit_filters import StreamlitFilters
+from general_utils.streamlit_filters import StreamlitFilters
 
 
 

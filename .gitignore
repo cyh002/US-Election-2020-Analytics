@@ -21,3 +21,4 @@ tests/
 
 #Ignore unnecessary files
 EDA.ipynb
+general_utils/__pycache__/*

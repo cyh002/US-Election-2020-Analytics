@@ -5,7 +5,7 @@ from general_utils.app_state import init_state
 import pandas as pd
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
-from app.general_utils.streamlit_filters import StreamlitFilters
+from general_utils.streamlit_filters import StreamlitFilters
 
 class WordCloudPage:
     def __init__(self):
