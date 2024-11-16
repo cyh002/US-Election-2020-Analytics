@@ -1,7 +1,9 @@
 # Twitter Sentiment Analysis: 2020 US Election
 
 An interactive dashboard analyzing Twitter sentiment during the 2020 US Presidential Election, focusing on tweets related to Donald Trump and Joe Biden.
-> **Live Demo**: [Twitter Sentiment Analysis Dashboard 😉](https://us-election-2020-analytics.streamlit.app/)
+> **Live Demo**: [Streamlit Cloud: Twitter Sentiment Analysis Dashboard 😉](https://us-election-2020-analytics.streamlit.app/) 
+
+> **Heroku Deployment**: [Backup: Twitter Sentiment Analysis Dashboard 🤯](https://us-election-analytics-2020-4ee3c0a80b5f.herokuapp.com/)
 ## 📊 Features
 
 - **Data Overview**: Explore the raw data and its structure
@@ -50,7 +52,7 @@ export openai_api_key=your_api_key
 
 4. Run the application
 ```bash
-python -m streamlit run app/streamlit_app.py
+streamlit run app/streamlit_app.py
 ```
 
 ## ⚙️ Configuration
@@ -108,6 +110,67 @@ openai:
 │   └── train_model.py      # Model training
 └── tests/                  # Test files
 ```
+
+## 🐳 Docker & Heroku Deployment
+
+### Docker Build
+
+1. Build the Docker image
+```bash
+# Build with OpenAI API key
+docker build -f docker/Dockerfile . -t streamlit-app:latest
+```
+
+2. Test locally
+```bash
+# Run container with port mapping
+docker run -d -p 8501:8501 -e PORT=8501 streamlit-app:latest
+
+# View at http://localhost:8501
+```
+
+### Heroku Deployment
+
+1. Install Heroku CLI and login
+```bash
+curl https://cli-assets.heroku.com/install.sh | sh
+heroku login
+heroku container:login
+```
+
+2. Create Heroku app
+```bash
+heroku create us-election-analytics-2020
+```
+
+3. Set environment variables
+```bash
+heroku config:set openai_api_key=your_key_here -a us-election-analytics-2020
+```
+
+4. Deploy container
+```bash
+# Tag image for Heroku
+docker tag streamlit-app:latest registry.heroku.com/us-election-analytics-2020/web
+
+# Push to Heroku registry
+docker push registry.heroku.com/us-election-analytics-2020/web
+
+# Release the container
+heroku container:release web -a us-election-analytics-2020
+```
+
+5. Open the app
+```bash
+heroku open -a us-election-analytics-2020
+```
+
+### Troubleshooting
+
+- View logs: `heroku logs --tail -a us-election-analytics-2020`
+- Restart app: `heroku restart -a us-election-analytics-2020`
+- Check build: `heroku builds -a us-election-analytics-2020`
+
 
 ## 👥 Team Members
 
