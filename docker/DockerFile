@@ -57,10 +57,10 @@ ENV openai_api_key=$openai_api_key
 # set home directory
 WORKDIR /app
 
-HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
-
 RUN useradd -m streamlit
 USER streamlit
 
-# Command to run the application
-ENTRYPOINT ["streamlit", "run", "app/streamlit_app.py", "--server.port=$PORT", "--server.address=0.0.0.0"]
+# # Command to run the application
+# ENTRYPOINT ["streamlit", "run", "app/streamlit_app.py", "--server.port=$PORT", "--server.address=0.0.0.0"]
+
+CMD ["streamlit", "run", "app/streamlit_app.py", "--server.port=$PORT"]
