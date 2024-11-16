@@ -1,18 +1,33 @@
-# Core Data Science
-pandas>=1.3.0
+transformers>=4.0.0
+torch>=2.0.0
+torchvision>=0.15.0
 numpy>=1.21.0
+pandas>=1.3.0
 
 # NLP & Text Processing
 wordcloud
+langdetect>=1.0.0
 emoji>=2.0.0
 
 # Visualization
 plotly>=5.0.0
 
-# Web Framework
+# Web Frameworks & APIs
 streamlit>=1.0.0
 streamlit_tags
 
-# API & Utils
+# Geospatial
+geopandas
+
+# API Clients & Utils
+openai
+langchain
+langchain_openai
+
+# Development Tools
+pytest>=6.2.0
 python-dotenv>=0.18.0
 PyYAML>=5.4.1
+prompt-toolkit
+ipykernel
+
