@@ -19,10 +19,10 @@ class DailyAnalysisPage:
         self.main()
         
     def additional_sidebar(self):
-        # Add input field for the number of tweets to analyze per day
+            # Add input field for the number of tweets to analyze per day
         self.llm_analyzer_count = st.sidebar.number_input(
             "Number of Tweets to Analyze",
-            min_value=0,
+            min_value=0, 
             max_value=self.llm_analyzer_count,
             value=0,
             help="Number of tweets to analyze for sentiment analysis per day. Max : " + str(self.llm_analyzer_count)
@@ -31,8 +31,8 @@ class DailyAnalysisPage:
         # update self.filters that date range is not required
         self.filters.disable_filters.append('date_range')
         
-        # create a single date picker for the user to select a date
-        st.sidebar.date_input(
+        # Store the selected date
+        self.selected_date = st.sidebar.date_input(
             "Select Date",
             min_value=self.data['created_date'].min(),
             max_value=self.data['created_date'].max(),
@@ -40,17 +40,18 @@ class DailyAnalysisPage:
             help="Select a date to analyze tweets for that day."
         )
         
-        
     def perform_analysis(self):
         st.header("📅 Daily Analysis")
         st.subheader(f"Performing analysis on the Top {self.llm_analyzer_count} Tweets, using model: {self.llm_analyzer.model}")
 
         if not self.filtered_data.empty:
             # Filter data for the latest day
-            selected_day_data = self.llm_analyzer.filter_latest_day(self.filtered_data)
+            selected_day_data = self.filtered_data[
+            self.filtered_data['created_date'] == self.selected_date
+            ].copy()
             columns_to_analyze = ['clean_tweet', 'engagement']
             selected_day_data = selected_day_data[columns_to_analyze]
-            selected_date = self.filtered_data['created_date'].max()
+            selected_date = self.selected_date
 
             # Limiting tweets to prevent token overflow
             selected_day_data = selected_day_data.sort_values(by='engagement', ascending=False)
