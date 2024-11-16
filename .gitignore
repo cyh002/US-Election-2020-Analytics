@@ -10,3 +10,14 @@ app/general_utils/__pycache__/*
 app/__pycache__/*
 cufile.log
 __pycache__/*
+#Ignore virtual environment file
+project6242/
+
+#Ignore all the proposal file
+proposal/
+
+#Ignore the tests file
+tests/
+
+#Ignore unnecessary files
+EDA.ipynb
