@@ -49,7 +49,6 @@ class UserAnalysisPage:
 
         st.plotly_chart(fig, use_container_width=True)
 
-
     def calculate_user_metrics(self):
         """Calculate and prepare user-level metrics"""
         self.user_metrics = self.filtered_data.groupby('user_id').agg({
@@ -100,8 +99,9 @@ class UserAnalysisPage:
             self.user_metrics,
             x='user_followers_count',
             nbins=50,
-            title="Distribution of Follower Counts",
-            labels={'user_followers_count': 'Follower Count', 'count': 'Number of Users'}
+            title="Log Distribution of Follower Counts",
+            labels={'user_followers_count': 'Follower Count', 'count': 'Number of Users'},
+            log_y = True
         )
         fig_dist_followers.add_trace(px.violin(self.user_metrics, x='user_followers_count').data[0])
         fig_dist_followers.update_layout(height=400, showlegend=False)
@@ -113,13 +113,35 @@ class UserAnalysisPage:
         with col2:
             st.metric("Mean Followers", f"{self.user_metrics['user_followers_count'].mean():,.0f}")
         
+        # Posts Count Distribution
+        fig_dist_posts_count = px.histogram(
+            self.user_metrics,
+            x='user_id_post_count',  
+            nbins=50,
+            title="Log Distribution of Total Posts",  
+            labels={'user_id_post_count': 'Total Posts', 'count': 'Number of Users'},
+            log_y= True  
+        )
+        
+        fig_dist_posts_count.add_trace(px.violin(self.user_metrics, x='user_id_post_count').data[0])
+        fig_dist_posts_count.update_layout(height=400, showlegend=False)
+        st.plotly_chart(fig_dist_posts_count, use_container_width=True)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Median Total Posts", f"{self.user_metrics['user_id_post_count'].median():.0f}")
+        with col2:
+            st.metric("Mean Total Posts", f"{self.user_metrics['user_id_post_count'].mean():.0f}")
+                
+        
         # Posts per Day Distribution
         fig_dist_posts = px.histogram(
             self.user_metrics,
             x='posts_per_day',
             nbins=50,
-            title="Distribution of Posts per Day",
-            labels={'posts_per_day': 'Posts per Day', 'count': 'Number of Users'}
+            title="Log Distribution of Posts per Day",
+            labels={'posts_per_day': 'Posts per Day', 'count': 'Number of Users'},
+            log_y=True
         )
         fig_dist_posts.add_trace(px.violin(self.user_metrics, x='posts_per_day').data[0])
         fig_dist_posts.update_layout(height=400, showlegend=False)
@@ -130,6 +152,8 @@ class UserAnalysisPage:
             st.metric("Median Posts/Day", f"{self.user_metrics['posts_per_day'].median():.2f}")
         with col2:
             st.metric("Mean Posts/Day", f"{self.user_metrics['posts_per_day'].mean():.2f}")
+            
+
 
 
     def display_activity_analysis(self):
