@@ -31,3 +31,4 @@ PyYAML>=5.4.1
 prompt-toolkit
 ipykernel
 nltk >= 3.9.1
+pydantic
