@@ -40,7 +40,7 @@ An interactive dashboard analyzing Twitter sentiment during the 2020 US Presiden
 
 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/twitter-sentiment-analysis.git
+git clone https://github.com/cyh002/twitter-sentiment-analysis.git
 cd twitter-sentiment-analysis
 ```
 
