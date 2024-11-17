@@ -1,6 +1,7 @@
 # Twitter Sentiment Analysis: 2020 US Election
 
 An interactive dashboard analyzing Twitter sentiment during the 2020 US Presidential Election, focusing on tweets related to Donald Trump and Joe Biden.
+
 > **Data Source**: [US Election 2020 Tweets🌟](https://www.kaggle.com/datasets/manchunhui/us-election-2020-tweets/)
 > **Live Demo**: [Streamlit Cloud: Twitter Sentiment Analysis Dashboard 😉](https://us-election-2020-analytics.streamlit.app/) 
 > **Heroku Deployment**: [Backup: Twitter Sentiment Analysis Dashboard 🤯](https://us-election-analytics-2020-4ee3c0a80b5f.herokuapp.com/)
